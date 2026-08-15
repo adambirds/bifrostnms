@@ -5,7 +5,11 @@ const apiUrl = process.env.BIFROST_API_INTERNAL_URL ?? 'http://localhost:8000/ap
 const authUrl = process.env.NEXT_PUBLIC_AUTH_URL ?? 'http://localhost:3001'
 
 export type CurrentUser = {
-  id: string; email: string; full_name: string; active_realm_id: string | null
+  id: string
+  email: string
+  full_name: string
+  is_superuser: boolean
+  active_realm_id: string | null
   realms: {id: string; name: string; slug: string; role: string}[]
 }
 
