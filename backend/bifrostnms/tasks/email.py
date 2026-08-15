@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import requests
 from celery import shared_task
 
 from bifrostnms.email import EmailMessage, get_email_backend
+from bifrostnms.email.microsoft_graph import MicrosoftGraphDeliveryError
 
 
 @shared_task(
     name="bifrostnms.tasks.email.send_email",
-    autoretry_for=(OSError, TimeoutError),
+    autoretry_for=(OSError, TimeoutError, requests.RequestException, MicrosoftGraphDeliveryError),
     retry_backoff=True,
     retry_backoff_max=300,
     retry_jitter=True,
