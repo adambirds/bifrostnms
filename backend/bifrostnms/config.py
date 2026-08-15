@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     webauthn_rp_name: str = "BifrostNMS"
     webauthn_origin: str = "http://localhost:3001"
 
+    # Provider-neutral email selection.
+    email_backend: Literal["smtp", "microsoft_graph"] = "smtp"
+
     # SMTP email delivery. Authentication is optional: omit both username and password
     # for an unauthenticated SMTP relay.
     smtp_host: str = "localhost"
@@ -47,6 +50,19 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from_email: str = "bifrostnms@localhost"
     smtp_from_name: str | None = "BifrostNMS"
+
+    # Microsoft Graph app-only delivery using certificate credentials. Credentials can
+    # be supplied either as base64-encoded PEM values or mounted PEM file paths.
+    microsoft_graph_tenant_id: str | None = None
+    microsoft_graph_client_id: str | None = None
+    microsoft_graph_sender_email: str | None = None
+    microsoft_graph_certificate_base64: str | None = None
+    microsoft_graph_private_key_base64: str | None = None
+    microsoft_graph_certificate_path: str | None = None
+    microsoft_graph_private_key_path: str | None = None
+    microsoft_graph_private_key_passphrase: str | None = None
+    microsoft_graph_from_name: str | None = "BifrostNMS"
+    microsoft_graph_timeout_seconds: float = 15.0
 
     @property
     def session_ttl_seconds(self) -> int:
