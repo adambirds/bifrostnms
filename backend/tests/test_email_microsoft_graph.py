@@ -15,21 +15,24 @@ PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\ntest-key\n-----END PRIVATE KEY-----\
 CERTIFICATE = "-----BEGIN CERTIFICATE-----\ntest-cert\n-----END CERTIFICATE-----\n"
 
 
-def make_backend(**overrides):
-    values = {
-        "tenant_id": "tenant-id",
-        "client_id": "client-id",
-        "sender_email": "bifrost@example.com",
-        "private_key": PRIVATE_KEY,
-        "public_certificate": CERTIFICATE,
-        "from_name": "BifrostNMS",
-        "timeout_seconds": 10,
-    }
-    values.update(overrides)
-    return MicrosoftGraphEmailBackend(**values)
+def make_backend(
+    *,
+    tenant_id: str = "tenant-id",
+    private_key_passphrase: str | None = None,
+) -> MicrosoftGraphEmailBackend:
+    return MicrosoftGraphEmailBackend(
+        tenant_id=tenant_id,
+        client_id="client-id",
+        sender_email="bifrost@example.com",
+        private_key=PRIVATE_KEY,
+        public_certificate=CERTIFICATE,
+        private_key_passphrase=private_key_passphrase,
+        from_name="BifrostNMS",
+        timeout_seconds=10,
+    )
 
 
-def test_reads_base64_pem_credential():
+def test_reads_base64_pem_credential() -> None:
     encoded = base64.b64encode(CERTIFICATE.encode()).decode()
     assert (
         read_pem_credential(base64_value=encoded, path_value=None, label="certificate")
@@ -37,12 +40,12 @@ def test_reads_base64_pem_credential():
     )
 
 
-def test_rejects_missing_credentials():
+def test_rejects_missing_credentials() -> None:
     with pytest.raises(MicrosoftGraphConfigurationError, match="tenant_id is required"):
         make_backend(tenant_id="")
 
 
-def test_acquires_app_token_with_certificate():
+def test_acquires_app_token_with_certificate() -> None:
     app = MagicMock()
     app.acquire_token_for_client.return_value = {"access_token": "token"}
 
@@ -62,7 +65,7 @@ def test_acquires_app_token_with_certificate():
     )
 
 
-def test_sends_mime_message_through_graph():
+def test_sends_mime_message_through_graph() -> None:
     response = MagicMock(status_code=202)
     backend = make_backend()
 
@@ -87,7 +90,7 @@ def test_sends_mime_message_through_graph():
     assert isinstance(call.kwargs["data"], str)
 
 
-def test_graph_rejection_raises_delivery_error():
+def test_graph_rejection_raises_delivery_error() -> None:
     response = MagicMock(status_code=403)
     response.headers = {"request-id": "request-123"}
     backend = make_backend()
