@@ -76,7 +76,7 @@ jobs:
       BIFROSTNMS_WEBAUTHN_ORIGIN: http://localhost:3001
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -143,7 +143,7 @@ jobs:
     name: Trivy FS Scan (Backend + Root)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run Trivy FS Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests-and-linters, trivy-fs-scan]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build Docker image
         run: docker build -f Dockerfile.backend -t bifrostnms-backend:ci .
 
@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-image
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build Docker image
         run: docker build -f Dockerfile.backend -t bifrostnms-backend:ci .
       - name: Run Trivy image scan
