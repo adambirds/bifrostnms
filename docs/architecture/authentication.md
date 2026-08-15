@@ -30,7 +30,47 @@ A Redis flush/restart without persistence therefore signs users out; it does not
 
 ## Realm context
 
-A session stores `active_realm_id`. `User` is global to an installation; access to a realm is defined by `RealmMembership`. Realm switching validates membership before changing the Redis session.
+A session stores `active_realm_id`. `User` is global to an installation; normal access to a realm is defined by `RealmMembership`. Realm switching validates membership before changing the Redis session.
+
+Installation superusers are the exception: they have implicit installation-wide access and may activate any active realm even without a `RealmMembership` row. This keeps platform administration separate from customer/user realm roles.
+
+## Installation superusers
+
+`User.is_superuser` is the installation-wide administrative flag. BifrostNMS intentionally does not have Django-style `is_staff`; there is no separate Django Admin-equivalent permission to model.
+
+A superuser:
+
+- may administer the whole BifrostNMS installation;
+- has implicit access to every active realm;
+- remains distinct from realm roles such as `owner`, `admin`, `member`, and `viewer`;
+- is returned by the authentication API with `is_superuser: true`.
+
+Create a new superuser inside the Dev Container with:
+
+```bash
+./tools/create-superuser
+```
+
+You can pre-supply identity fields:
+
+```bash
+./tools/create-superuser \
+  --email admin@example.com \
+  --first-name Admin \
+  --last-name User
+```
+
+The password is prompted without echoing. For automated deployment, set `BIFROSTNMS_SUPERUSER_PASSWORD` for the command invocation rather than passing a password on the command line.
+
+To promote an existing account:
+
+```bash
+./tools/create-superuser \
+  --email existing@example.com \
+  --promote-existing
+```
+
+Code that requires installation-wide privileges should use `backend/bifrostnms/auth/permissions.py::require_superuser` rather than duplicating flag checks in individual endpoints.
 
 ## Passwords
 
@@ -60,7 +100,9 @@ Production WebAuthn requires a secure HTTPS origin.
 - `backend/bifrostnms/api/two_factor.py` - TOTP and recovery-code API
 - `backend/bifrostnms/api/webauthn.py` - passkey API
 - `backend/bifrostnms/auth/security.py` - password and Redis session implementation
+- `backend/bifrostnms/auth/permissions.py` - installation-level authorization helpers
 - `backend/bifrostnms/auth/two_factor.py` - TOTP/recovery-code logic
 - `backend/bifrostnms/auth/webauthn.py` - WebAuthn ceremony logic
 - `backend/bifrostnms/models/auth.py` - persistent authentication models
+- `backend/bifrostnms/cli/create_superuser.py` - superuser administration CLI
 - `auth-frontend/` - Next.js authentication application
