@@ -3,7 +3,7 @@ import pytest
 from bifrostnms.cli.create_superuser import MIN_PASSWORD_LENGTH, _validate_password, build_parser
 
 
-def test_superuser_cli_parser_supports_promotion():
+def test_superuser_cli_parser_supports_promotion() -> None:
     args = build_parser().parse_args(
         [
             "--email",
@@ -22,7 +22,7 @@ def test_superuser_cli_parser_supports_promotion():
     assert args.promote_existing is True
 
 
-def test_superuser_password_minimum_length():
+def test_superuser_password_minimum_length() -> None:
     valid = "x" * MIN_PASSWORD_LENGTH
     assert _validate_password(valid) == valid
 
