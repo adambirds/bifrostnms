@@ -1,15 +1,12 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import pytest
-from fastapi import HTTPException
-
 from bifrostnms.auth.security import (
     SessionData,
+    hash_password,
     hash_token,
     normalize_email,
     verify_password,
-    hash_password,
 )
 
 
