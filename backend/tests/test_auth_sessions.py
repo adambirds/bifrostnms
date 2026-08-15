@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -6,6 +7,7 @@ import pytest
 from fastapi import Request, Response
 
 from bifrostnms.auth.security import create_session, delete_session
+from bifrostnms.models import User
 
 
 def make_request(*, cookie: str | None = None) -> Request:
@@ -27,8 +29,8 @@ def make_request(*, cookie: str | None = None) -> Request:
 
 
 @pytest.mark.asyncio
-async def test_create_session_persists_to_redis_and_sets_cookie():
-    user = SimpleNamespace(id=uuid4(), is_superuser=False)
+async def test_create_session_persists_to_redis_and_sets_cookie() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4(), is_superuser=False))
     realm_id = uuid4()
     redis = AsyncMock()
     settings = SimpleNamespace(
@@ -60,7 +62,7 @@ async def test_create_session_persists_to_redis_and_sets_cookie():
 
 
 @pytest.mark.asyncio
-async def test_delete_session_removes_redis_key_and_cookie():
+async def test_delete_session_removes_redis_key_and_cookie() -> None:
     redis = AsyncMock()
     settings = SimpleNamespace(
         session_key_prefix="bifrostnms:session:",
