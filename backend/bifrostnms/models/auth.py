@@ -16,8 +16,8 @@ class TimestampedModel(Model):
 
 
 class User(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    email = fields.CharField(max_length=320, unique=True, index=True)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
+    email = fields.CharField(max_length=320, unique=True, db_index=True)
     password_hash = fields.CharField(max_length=255)
     first_name = fields.CharField(max_length=150)
     last_name = fields.CharField(max_length=150)
@@ -36,16 +36,16 @@ class User(TimestampedModel):
 
 
 class Realm(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     name = fields.CharField(max_length=200)
-    slug = fields.CharField(max_length=120, unique=True, index=True)
+    slug = fields.CharField(max_length=120, unique=True, db_index=True)
     is_active = fields.BooleanField(default=True)
 
     memberships: fields.ReverseRelation[RealmMembership]
 
 
 class RealmMembership(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="memberships", on_delete=fields.CASCADE
     )
@@ -59,7 +59,7 @@ class RealmMembership(TimestampedModel):
 
 
 class WebAuthnCredential(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="webauthn_credentials", on_delete=fields.CASCADE
     )
@@ -74,7 +74,7 @@ class WebAuthnCredential(TimestampedModel):
 
 
 class TwoFactorMethod(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="two_factor_methods", on_delete=fields.CASCADE
     )
@@ -90,21 +90,21 @@ class TwoFactorMethod(TimestampedModel):
 
 
 class RecoveryCode(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="recovery_codes", on_delete=fields.CASCADE
     )
-    code_hash = fields.CharField(max_length=64, index=True)
+    code_hash = fields.CharField(max_length=64, db_index=True)
     used_at = fields.DatetimeField(null=True)
 
 
 class AuthenticationChallenge(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
     user: fields.ForeignKeyNullableRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="authentication_challenges", null=True, on_delete=fields.CASCADE
     )
-    challenge_type = fields.CharField(max_length=32, index=True)
-    challenge_hash = fields.CharField(max_length=64, unique=True, index=True)
-    expires_at = fields.DatetimeField(index=True)
+    challenge_type = fields.CharField(max_length=32, db_index=True)
+    challenge_hash = fields.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = fields.DatetimeField(db_index=True)
     consumed_at = fields.DatetimeField(null=True)
     metadata = fields.JSONField[dict[str, Any]](default=dict)
