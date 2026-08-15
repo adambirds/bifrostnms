@@ -113,7 +113,10 @@ single-purpose, low-risk change to be committed directly to `main`. Treat this a
 an exception, not the default, and do not apply it to large or multi-feature work.
 If the intended workflow is unclear, use a branch and pull request.
 
-For Go, run `gofmt` and keep dependencies minimal. For Python, use modern typing and async APIs. For TypeScript, keep strict typing and avoid `any` unless unavoidable and documented.
+For Go, keep dependencies minimal; `tools/lint` runs `gofmt` and `go vet`, and
+`tools/lint --fix` applies `gofmt`. For Python, use modern typing and async APIs.
+For TypeScript, keep strict typing and avoid `any` unless unavoidable and
+documented.
 
 ## Documentation
 

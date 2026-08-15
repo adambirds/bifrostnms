@@ -88,6 +88,12 @@ jobs:
             backend/requirements/*.in
             backend/requirements/*.txt
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+          cache-dependency-path: agent/go.mod
+
       - uses: pnpm/action-setup@v4.1.0
         with:
           version: 10.15.0

@@ -93,7 +93,10 @@ before running it or they will not be checked. Review the staged changes with
 `git status` before continuing; staging for lint does not require committing the
 files immediately.
 
-Python should pass Ruff, mypy and pytest. Go should pass `gofmt`, `go vet` and `go test`. Frontend code should pass ESLint, Prettier, Stylelint and its tests once the frontend is bootstrapped.
+Python should pass Ruff, mypy and pytest. Go formatting and static analysis are
+included in `tools/lint` through `gofmt` and `go vet`; `tools/lint --fix` applies
+`gofmt` fixes. Go code must also pass `go test`. Frontend code should pass ESLint,
+Prettier, Stylelint and its tests once the frontend is bootstrapped.
 
 ## Dependencies
 

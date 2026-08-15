@@ -29,6 +29,7 @@ def run() -> None:
         groups={
             "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
             "frontend": ["css", "html", "js", "jsx", "ts", "tsx", "mdx", "svg"],
+            "agent": ["go"],
         },
         exclude=excluded_files,
     )
@@ -37,6 +38,7 @@ def run() -> None:
         groups={
             "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
             "frontend": ["css", "js", "jsx", "ts", "tsx", "mdx", "svg"],
+            "agent": ["go"],
         },
         exclude=excluded_files,
     )
@@ -102,6 +104,24 @@ def run() -> None:
         check_arg="-d",
         fix_arg="-w",
         description="Formats shell scripts",
+    )
+
+    linter_config.external_linter(
+        "gofmt",
+        ["gofmt"],
+        ["go"],
+        check_arg="-d",
+        fix_arg="-w",
+        description="Formats Go source files",
+    )
+
+    linter_config.external_linter(
+        "go-vet",
+        ["go", "vet", "./..."],
+        ["go"],
+        pass_targets=False,
+        cwd="agent",
+        description="Reports suspicious Go constructs",
     )
 
     command = ["tools/run-mypy", "--quiet"]
