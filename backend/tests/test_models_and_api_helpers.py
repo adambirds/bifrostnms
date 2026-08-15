@@ -2,13 +2,13 @@ from bifrostnms.api.auth import slugify
 from bifrostnms.models import User
 
 
-def test_slugify_normalizes_realm_names():
+def test_slugify_normalizes_realm_names() -> None:
     assert slugify("My Home Lab") == "my-home-lab"
     assert slugify("  ADB Software & Solutions  ") == "adb-software-solutions"
     assert slugify("***") == "realm"
 
 
-def test_user_full_name():
+def test_user_full_name() -> None:
     user = User(
         email="adam@example.com",
         password_hash="hash",
@@ -18,7 +18,7 @@ def test_user_full_name():
     assert user.full_name == "Adam Birds"
 
 
-def test_user_full_name_does_not_leave_extra_whitespace():
+def test_user_full_name_does_not_leave_extra_whitespace() -> None:
     user = User(
         email="adam@example.com",
         password_hash="hash",
