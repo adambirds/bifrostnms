@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
-export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend"
+PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend"
+export PYTHONPATH
 
 if [ -f /opt/venv/bin/activate ]; then
 	# shellcheck disable=SC1091
