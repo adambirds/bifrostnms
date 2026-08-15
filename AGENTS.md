@@ -41,6 +41,50 @@ Use Tortoise's built-in migration system. Do not use `generate_schemas()` as a s
 
 Read `docs/development/database-migrations.md` before changing schemas.
 
+## Commit messages
+
+When creating a commit, agents must use this exact title format:
+
+```text
+<type>: <Imperative summary>.
+```
+
+Use one of these lowercase types:
+
+- `feat` for new user-visible functionality.
+- `fix` for a bug fix.
+- `refactor` for a code change that neither fixes a bug nor adds a feature.
+- `test` for test-only changes.
+- `docs` for documentation-only changes.
+- `style` for formatting or other non-functional source changes.
+- `build` for build system or dependency changes.
+- `ci` for continuous-integration changes.
+- `deployment` for containers, packaging or deployment changes.
+- `chore` for repository maintenance not covered by another type.
+
+The summary after the prefix must start with a capital letter, use imperative mood,
+end with a period and make the commit's purpose specific. The complete title,
+including its prefix and final period, must not exceed 76 characters. Do not use
+past tense, a gerund or third-person wording such as `Fixed`, `Fixing` or `Fixes`.
+
+A body is optional. Separate it from the title with a blank line, explain why the
+change is needed when the title is not sufficient and keep every body line at or
+below 76 characters.
+
+Valid examples:
+
+```text
+fix: Fix issue with authentication.
+refactor: Change the two-factor method we use.
+ci: Update action to new version.
+deployment: Add new step to Dockerfile.
+```
+
+Invalid examples include `fix: fixed authentication` (past tense, no capital and
+no period), `Fix authentication.` (missing type) and titles longer than 76
+characters. Before handing off any commit, run `tools/commit-message-lint` and
+correct every reported violation. Do not bypass the commit-message rules.
+
 ## Working rules
 
 Read nearby code/tests/docs before editing. Keep changes scoped. Add tests for behaviour. Do not silently weaken lint/type/test rules. Do not commit secrets, credentials, local environment files or generated coverage output.

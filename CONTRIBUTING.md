@@ -27,7 +27,44 @@ Then choose **Dev Containers: Reopen in Container**. The container installs the 
 
 ## Branches and commits
 
-Create a focused branch from `main`. Keep commits small and coherent. Commit messages are checked with gitlint; use an imperative subject and explain non-obvious reasoning in the body.
+Create a focused branch from `main` and keep commits small and coherent. Commit
+messages are checked automatically with gitlint and must use this title format:
+
+```text
+<type>: <Imperative summary>.
+```
+
+Choose one of the following lowercase types:
+
+- `feat` — new user-visible functionality.
+- `fix` — a bug fix.
+- `refactor` — a code change that neither fixes a bug nor adds a feature.
+- `test` — test-only changes.
+- `docs` — documentation-only changes.
+- `style` — formatting or other non-functional source changes.
+- `build` — build system or dependency changes.
+- `ci` — continuous-integration changes.
+- `deployment` — containers, packaging or deployment changes.
+- `chore` — repository maintenance not covered by another type.
+
+Start the summary with a capital letter, write it in imperative mood, and end it
+with a period. The complete title, including the prefix and final period, must
+not exceed 76 characters. For example:
+
+```text
+fix: Fix issue with authentication.
+refactor: Change the two-factor method we use.
+ci: Update action to new version.
+deployment: Add new step to Dockerfile.
+```
+
+Do not use past tense, a gerund or third-person wording such as `Fixed`, `Fixing`
+or `Fixes`. A commit body is optional. When one is useful, separate it from the
+title with a blank line, explain the reason for the change, and keep each line at
+or below 76 characters.
+
+Run `tools/commit-message-lint` before pushing and correct every reported
+violation. Do not bypass the commit-message checks.
 
 ## Quality checks
 
