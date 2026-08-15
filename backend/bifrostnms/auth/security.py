@@ -38,7 +38,7 @@ class SessionData:
         return json.dumps(data, separators=(",", ":"))
 
     @classmethod
-    def from_json(cls, value: str, *, redis_key: str) -> "SessionData":
+    def from_json(cls, value: str, *, redis_key: str) -> SessionData:
         data = json.loads(value)
         return cls(
             user_id=UUID(data["user_id"]),

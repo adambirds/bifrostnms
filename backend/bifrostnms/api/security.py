@@ -24,7 +24,9 @@ async def security_summary(request: Request) -> SecuritySummary:
                 backed_up=credential.backed_up,
                 transports=list(credential.transports or []),
                 created_at=credential.created_at.isoformat(),
-                last_used_at=credential.last_used_at.isoformat() if credential.last_used_at else None,
+                last_used_at=credential.last_used_at.isoformat()
+                if credential.last_used_at
+                else None,
             )
             for credential in credentials
         ],

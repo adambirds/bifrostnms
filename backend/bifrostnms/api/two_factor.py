@@ -22,12 +22,18 @@ router = APIRouter(prefix="/auth/2fa", tags=["authentication"])
 
 
 @router.post("/challenge/verify", response_model=AuthResponse)
-async def verify_login_challenge(payload: TwoFactorVerifyRequest, request: Request, response: Response) -> AuthResponse:
+async def verify_login_challenge(
+    payload: TwoFactorVerifyRequest, request: Request, response: Response
+) -> AuthResponse:
     user = await consume_login_challenge(payload.challenge_token)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="2FA challenge expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="2FA challenge expired"
+        )
     if not await verify_two_factor(user, payload.code, recovery=payload.recovery_code):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code"
+        )
     session = await create_session(user, request, response, auth_method="password+2fa")
     return AuthResponse(user=await serialize_user(user, session))
 

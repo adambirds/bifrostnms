@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from webauthn import (
-    base64url_to_bytes,
     generate_authentication_options,
     generate_registration_options,
     options_to_json,
@@ -23,7 +22,6 @@ from webauthn.helpers.structs import (
 
 from bifrostnms.config import get_settings
 from bifrostnms.models import AuthenticationChallenge, User, WebAuthnCredential
-
 
 CHALLENGE_TTL_MINUTES = 5
 
@@ -53,11 +51,15 @@ async def _store_challenge(
 
 
 async def _get_challenge(challenge_id: str, challenge_type: str) -> AuthenticationChallenge:
-    challenge = await AuthenticationChallenge.filter(
-        id=challenge_id,
-        challenge_type=challenge_type,
-        consumed_at=None,
-    ).select_related("user").first()
+    challenge = (
+        await AuthenticationChallenge.filter(
+            id=challenge_id,
+            challenge_type=challenge_type,
+            consumed_at=None,
+        )
+        .select_related("user")
+        .first()
+    )
     if not challenge or challenge.expires_at <= datetime.now(UTC):
         raise ValueError("WebAuthn challenge expired")
     return challenge
@@ -140,7 +142,9 @@ async def verify_authentication(
     if not isinstance(credential_id, str):
         raise ValueError("Invalid passkey response")
 
-    stored = await WebAuthnCredential.filter(credential_id=credential_id).select_related("user").first()
+    stored = (
+        await WebAuthnCredential.filter(credential_id=credential_id).select_related("user").first()
+    )
     if not stored:
         raise ValueError("Passkey is not registered")
 

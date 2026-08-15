@@ -1,6 +1,5 @@
 from collections.abc import Callable
-
-from typing_extensions import override
+from typing import override
 
 
 class FormattedError(Exception):
@@ -30,9 +29,7 @@ class TokenizerState:
 
 
 class Token:
-    def __init__(  # noqa: PLR0917
-        self, kind: str, s: str, tag: str, line: int, col: int, line_span: int
-    ) -> None:
+    def __init__(self, kind: str, s: str, tag: str, line: int, col: int, line_span: int) -> None:
         self.kind = kind
         self.s = s
         self.tag = tag
