@@ -71,10 +71,8 @@ TENSE_DATA = [
 TENSE_CORRECTIONS = {word: imperative for words, imperative in TENSE_DATA for word in words}
 
 
-class ImperativeMood(LineRule):
-    """This rule will enforce that the commit message title uses imperative
-    mood. This is done by checking if the first word is in `WORD_SET`, if so
-    show the word in the correct mood."""
+class ImperativeMood(LineRule):  # type: ignore[misc]
+    """Enforce imperative mood in commit-message titles."""
 
     name = "title-imperative-mood"
     id = "Z1"
@@ -86,9 +84,8 @@ class ImperativeMood(LineRule):
     )
 
     def validate(self, line: str, commit: GitCommit) -> list[RuleViolation]:
-        violations = []
+        violations: list[RuleViolation] = []
 
-        # Ignore the section tag (ie `<section tag>: <message body>.`)
         words = line.split(": ", 1)[-1].split()
         first_word = words[0].lower()
 
@@ -102,7 +99,6 @@ class ImperativeMood(LineRule):
                     title=commit.message.title,
                 ),
             )
-
             violations.append(violation)
 
         return violations
