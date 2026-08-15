@@ -9,6 +9,7 @@ export type User = {
   last_name: string
   full_name: string
   email_verified: boolean
+  is_superuser: boolean
   active_realm_id: string | null
   realms: Realm[]
 }
