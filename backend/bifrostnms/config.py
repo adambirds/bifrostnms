@@ -12,8 +12,11 @@ class Settings(BaseSettings):
 
     env: str = "development"
     database_url: str = "postgres://bifrostnms:bifrostnms@postgres:5432/bifrostnms"
-    auto_create_schema: bool = True
+    redis_url: str = "redis://redis:6379/0"
+    auto_create_schema: bool = False
+
     session_cookie_name: str = "bifrost_session"
+    session_key_prefix: str = "bifrostnms:session:"
     session_ttl_days: int = 30
     cookie_secure: bool = False
     cookie_domain: str | None = None
@@ -26,6 +29,10 @@ class Settings(BaseSettings):
     webauthn_rp_id: str = "localhost"
     webauthn_rp_name: str = "BifrostNMS"
     webauthn_origin: str = "http://localhost:3001"
+
+    @property
+    def session_ttl_seconds(self) -> int:
+        return self.session_ttl_days * 24 * 60 * 60
 
     @property
     def cors_origin_list(self) -> list[str]:
