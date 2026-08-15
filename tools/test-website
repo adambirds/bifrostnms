@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Test website (Next.js)
+echo "🧪 Testing website..."
+cd website || exit 1
+if ! pnpm test; then
+	echo "❌ Website tests failed"
+	exit 1
+fi

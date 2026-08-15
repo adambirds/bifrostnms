@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-for name in prod dev mypy pip; do
-  python -m piptools compile --resolver=backtracking --strip-extras --output-file="backend/requirements/${name}.txt" "backend/requirements/${name}.in"
-done

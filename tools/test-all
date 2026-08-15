@@ -1,6 +1,43 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-PYTHONPATH=backend pytest backend
-(cd agent && go test ./...)
-if [[ -f frontend/package.json ]]; then pnpm --dir frontend test --if-present; fi
+# Test all components
+echo "🧪 Running all tests..."
+echo ""
+
+FAILED_COMPONENTS=()
+
+# Test Backend (Django)
+echo "📊 Backend (Django)..."
+cd backend || exit 1
+if DJANGO_SETTINGS_MODULE=techwiki.settings_test coverage run manage.py test -v 2; then
+	echo "✅ Backend tests passed"
+else
+	echo "❌ Backend tests failed"
+	FAILED_COMPONENTS+=("Backend")
+fi
+echo ""
+
+cd .. || exit 1
+
+# Test Website (Next.js)
+echo "🌐 Website (Next.js)..."
+cd website || exit 1
+if pnpm test; then
+	echo "✅ Website tests passed"
+else
+	echo "❌ Website tests failed"
+	FAILED_COMPONENTS+=("Website")
+fi
+echo ""
+
+cd .. || exit 1
+
+# Summary
+echo "📋 Test Summary:"
+if [ ${#FAILED_COMPONENTS[@]} -eq 0 ]; then
+	echo "🎉 All tests passed!"
+	exit 0
+else
+	echo "❌ Failed components: ${FAILED_COMPONENTS[*]}"
+	exit 1
+fi

@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import contextlib
+import logging
+import os
+import re
+import sys
+from collections.abc import Iterable, Iterator
+from pathlib import Path
+from typing import Any
+
+# Ensure tools.* imports work regardless of which project root we're in
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from zulint import lister  # type: ignore[import-not-found]
+
+from tools.lib.html_branches import build_id_dict  # type: ignore[import-not-found]
+from tools.lib.pretty_print import validate_indent_html  # type: ignore[import-not-found]
+from tools.lib.template_parser import (  # type: ignore[import-not-found]
+    TemplateParserError,
+    validate,
+)
+
+logger = logging.getLogger(__name__)
+
+# Per-project file excludes (relative to each project root)
+EXCLUDED_FILES: list[str] = []
+
+# Default roots we’ll consider in a monorepo if --roots isn’t supplied.
+DEFAULT_CANDIDATE_ROOTS: list[str] = [".", "frontend", "admin-frontend", "website"]
+
+# HTML5 void tags that the parser expects to be self-closing
+HTML5_VOID_TAGS: tuple[str, ...] = (
+    "area",
+    "base",
+    "br",
+    "col",
+    "command",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "keygen",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+)
+
+
+@contextlib.contextmanager
+def pushd(path: Path) -> Iterator[None]:
+    prev = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev)
+
+
+def discover_roots(explicit_roots: list[str] | None) -> list[Path]:
+    if explicit_roots:
+        discovered = [Path(r).resolve() for r in explicit_roots if Path(r).exists()]
+        if not discovered:
+            print("No valid roots found from --roots.", file=sys.stderr)
+            sys.exit(2)
+        return discovered
+
+    discovered_roots: list[Path] = []
+    for cand in DEFAULT_CANDIDATE_ROOTS:
+        p = Path(cand)
+        if p.exists():
+            discovered_roots.append(p.resolve())
+    if not discovered_roots:
+        print("No valid roots discovered. Provide --roots.", file=sys.stderr)
+        sys.exit(2)
+    return discovered_roots
+
+
+def check_our_files(
+    modified_only: bool,
+    all_dups: bool,
+    fix: bool,
+    targets: list[str],
+    roots: list[Path],
+) -> None:
+    """
+    Run per-root so each project’s file listing & git-modified detection are scoped correctly.
+    We exit with non-zero if any root fails.
+    """
+    any_fail = False
+
+    logging.basicConfig(format="%(levelname)s:%(message)s")
+
+    for root in roots:
+        with pushd(root):
+            scoped_targets = _scope_targets_to_root(targets)
+            try:
+                by_lang: dict[str, list[str]] = lister.list_files(
+                    targets=scoped_targets,
+                    modified_only=modified_only,
+                    ftypes=["hbs", "html"],
+                    group_by_ftype=True,
+                    exclude=EXCLUDED_FILES,
+                )
+            except Exception as e:
+                print(f"Failed to list files in {root}: {e}", file=sys.stderr)
+                any_fail = True
+                continue
+
+            html_files: list[str] = by_lang.get("html", []) or []
+
+            # Extra safety: ensure we only consider files within this root.
+            cwd = Path.cwd()
+            html_files = [f for f in html_files if _is_path_under_root(cwd, Path(f))]
+
+            try:
+                _check_html_templates(html_files, all_dups, fix)
+            except SystemExit as se:
+                if se.code != 0:
+                    any_fail = True
+
+    if any_fail:
+        sys.exit(1)
+
+
+def _scope_targets_to_root(targets: list[str]) -> list[str]:
+    """
+    Limit incoming targets to those that exist under the *current* working dir (the root we're checking).
+    If no targets were specified, force ["."], so zulint only scans cwd (not the whole repo).
+    """
+    if not targets:
+        return ["."]
+    cwd = Path.cwd()
+    scoped: list[str] = []
+    for t in targets:
+        p = Path(t)
+        rp = (cwd / p).resolve() if not p.is_absolute() else p.resolve()
+        try:
+            rp.relative_to(cwd)
+        except ValueError:
+            continue
+        if rp.exists():
+            scoped.append(str(rp.relative_to(cwd)))
+    return scoped
+
+
+def _check_html_templates(templates: Iterable[str], all_dups: bool, fix: bool) -> None:
+    templates_list: list[str] = sorted(str(fn) for fn in templates)
+
+    # Historic exception for lodash templates
+    if "templates/corporate/team.html" in templates_list:
+        templates_list.remove("templates/corporate/team.html")
+
+    def check_for_duplicate_ids(paths: list[str]) -> dict[str, list[str]]:
+        template_id_dict: dict[str, list[str]] = build_id_dict(paths)
+
+        IGNORE_IDS: list[str] = [
+            "errors",
+            "email",
+            "registration",
+            "pw_strength",
+            "id_password",
+            "top_navbar",
+            "id_email",
+            "id_terms",
+            "logout_form",
+            "send_confirm",
+            "charged_amount",
+            "change-plan-status",
+        ]
+
+        bad_ids_dict: dict[str, list[str]] = {
+            ids: fns
+            for ids, fns in template_id_dict.items()
+            if (ids not in IGNORE_IDS) and len(fns) > 1
+        }
+
+        if all_dups:
+            ignorable_ids_dict: dict[str, list[str]] = {
+                ids: fns
+                for ids, fns in template_id_dict.items()
+                if ids in IGNORE_IDS and len(fns) > 1
+            }
+            for ids, fns in ignorable_ids_dict.items():
+                logger.warning("Duplicate ID(s) detected (ignored list): ID %r present in:", ids)
+                for fn in fns:
+                    print(fn)
+
+        for ids, fns in bad_ids_dict.items():
+            logger.error("Duplicate ID(s) detected: ID %r present in:", ids)
+            for fn in fns:
+                print(fn)
+        return bad_ids_dict
+
+    bad_ids_list = list(check_for_duplicate_ids(templates_list).keys())
+    if bad_ids_list:
+        print("Exiting—please clean up all duplicates before running this again.")
+        sys.exit(1)
+
+    # Validate + indentation formatting (with HTML5 void tag tolerance)
+    for fn in templates_list:
+        # Declare type upfront so both branches agree
+        tokens: list[Any]
+        # First try normal validation (strict XHTML-ish)
+        try:
+            tokens = validate(fn, template_format="django")
+        except TemplateParserError as e:
+            # If it's the classic void-tag complaint, try HTML5-to-self-closing in-memory
+            if _looks_like_void_tag_error(str(e)):
+                ok, tokens2 = _maybe_validate_html5_with_auto_singletons(fn)
+                if not ok or tokens2 is None:
+                    # Still not parseable; surface the original error
+                    raise
+                tokens = tokens2
+                # tokens is valid here; proceed to pretty print / fix
+                if not validate_indent_html(fn, tokens, fix):
+                    sys.exit(1)
+                continue
+            else:
+                # Different parser error; re-raise
+                raise
+
+        # Normal path
+        if not validate_indent_html(fn, tokens, fix):
+            sys.exit(1)
+
+
+def _looks_like_void_tag_error(msg: str) -> bool:
+    lower = msg.lower()
+    return ("tag must be self-closing" in lower) or ("must not be self-closing" in lower)
+
+
+def _maybe_validate_html5_with_auto_singletons(fn: str) -> tuple[bool, list[Any] | None]:
+    """
+    Attempt to re-validate after converting HTML5-style void tags to self-closing in-memory.
+    Returns (ok, tokens). If ok=False, tokens=None.
+    """
+    try:
+        with open(fn, encoding="utf-8") as f:
+            original = f.read()
+    except OSError:
+        return False, None
+
+    converted = _html5_voids_to_self_closing(original)
+
+    try:
+        tokens: list[Any] = validate(fn=fn, text=converted, template_format="django")
+        return True, tokens
+    except TemplateParserError:
+        return False, None
+
+
+# Regex that finds a start tag of a void element that is NOT already self-closing.
+# Rough pattern: <(meta|img|br)...> where ">" is not preceded by "/".
+_VOID_TAGS_PATTERN = re.compile(
+    r"<(?P<tag>{tags})(?P<body>(?:\s+[^<>/][^<>]*?)?)\s*>".format(tags="|".join(HTML5_VOID_TAGS)),
+    flags=re.IGNORECASE,
+)
+
+
+def _html5_voids_to_self_closing(s: str) -> str:
+    def repl(m: re.Match[str]) -> str:
+        tag = m.group("tag")
+        body = m.group("body") or ""
+        # If body already ends with '/', keep as-is.
+        body_stripped = body.rstrip()
+        if body_stripped.endswith("/"):
+            return m.group(0)
+        return f"<{tag}{body} />"
+
+    return _VOID_TAGS_PATTERN.sub(repl, s)
+
+
+def _is_path_under_root(root: Path, candidate: Path) -> bool:
+    """
+    Return True if `candidate` is inside `root`. Accept both relative and absolute `candidate` inputs.
+    """
+    try:
+        candidate_resolved = (
+            (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+        )
+        candidate_resolved.relative_to(root.resolve())
+        return True
+    except Exception:
+        return False
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Check HTML templates across monorepo project roots (frontend/admin-frontend/website/etc.)."
+    )
+    parser.add_argument(
+        "-m", "--modified", action="store_true", help="only check modified files in each root"
+    )
+    parser.add_argument(
+        "--all-dups",
+        action="store_true",
+        help="Also report duplicate IDs from the ignore list",
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Automatically fix indentation problems. Also converts HTML5 void tags to self-closing if needed.",
+    )
+    parser.add_argument(
+        "--roots",
+        nargs="+",
+        help="Project roots to scan (defaults to existing of: ., frontend, admin-frontend, website).",
+    )
+    parser.add_argument(
+        "targets",
+        nargs=argparse.REMAINDER,
+        help="Optional targets (paths) relative to each root. If omitted, all files in each root are considered.",
+    )
+    args = parser.parse_args()
+
+    scan_roots = discover_roots(args.roots)
+    check_our_files(args.modified, args.all_dups, args.fix, args.targets, scan_roots)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,9 @@
+#!/bin/bash
+# Run Django tests
+set -e
+
+cd /workspace/backend
+source /opt/venv/bin/activate
+
+echo "🧪 Running Django tests..."
+DJANGO_SETTINGS_MODULE=techwiki.settings_test python manage.py test "$@"
