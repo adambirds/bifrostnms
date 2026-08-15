@@ -62,7 +62,7 @@ class WebAuthnCredential(TimestampedModel):
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="webauthn_credentials", on_delete=fields.CASCADE
     )
-    credential_id = fields.TextField(unique=True)
+    credential_id = fields.CharField(max_length=1024, unique=True)
     public_key = fields.TextField()
     sign_count = fields.BigIntField(default=0)
     name = fields.CharField(max_length=120, default="Passkey")
