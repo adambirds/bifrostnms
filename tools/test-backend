@@ -1,9 +1,13 @@
-#!/bin/bash
-# Run Django tests
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-cd /workspace/backend
-source /opt/venv/bin/activate
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend"
 
-echo "🧪 Running Django tests..."
-DJANGO_SETTINGS_MODULE=techwiki.settings_test python manage.py test "$@"
+if [ -f /opt/venv/bin/activate ]; then
+	# shellcheck disable=SC1091
+	source /opt/venv/bin/activate
+fi
+
+echo "🧪 Running BifrostNMS backend tests..."
+exec pytest backend/tests "$@"
