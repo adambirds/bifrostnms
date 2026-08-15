@@ -9,7 +9,7 @@ from bifrostnms.auth.two_factor import (
 )
 
 
-def test_totp_secret_encryption_round_trip():
+def test_totp_secret_encryption_round_trip() -> None:
     secret = "JBSWY3DPEHPK3PXP"
     encrypted = encrypt_secret(secret)
 
@@ -17,14 +17,14 @@ def test_totp_secret_encryption_round_trip():
     assert decrypt_secret(encrypted) == secret
 
 
-def test_recovery_code_hash_is_normalized():
+def test_recovery_code_hash_is_normalized() -> None:
     expected = hash_recovery_code("ABCD-EFGH-IJKL")
 
     assert hash_recovery_code(" abcd-efgh-ijkl ") == expected
     assert hash_recovery_code("ABCD-EFGH-IJKL") != hash_recovery_code("ABCD-EFGH-IJKM")
 
 
-def test_generated_recovery_code_format_and_uniqueness():
+def test_generated_recovery_code_format_and_uniqueness() -> None:
     codes = {generate_recovery_code() for _ in range(RECOVERY_CODE_COUNT)}
 
     assert len(codes) == RECOVERY_CODE_COUNT
