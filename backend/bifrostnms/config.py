@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +36,17 @@ class Settings(BaseSettings):
     webauthn_rp_id: str = "localhost"
     webauthn_rp_name: str = "BifrostNMS"
     webauthn_origin: str = "http://localhost:3001"
+
+    # SMTP email delivery. Authentication is optional: omit both username and password
+    # for an unauthenticated SMTP relay.
+    smtp_host: str = "localhost"
+    smtp_port: int = 25
+    smtp_security: Literal["none", "starttls", "ssl"] = "none"
+    smtp_timeout_seconds: float = 15.0
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str = "bifrostnms@localhost"
+    smtp_from_name: str | None = "BifrostNMS"
 
     @property
     def session_ttl_seconds(self) -> int:
