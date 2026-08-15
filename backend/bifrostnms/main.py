@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from tortoise import Tortoise
+from tortoise.contrib.fastapi import RegisterTortoise
 
 from bifrostnms.api.auth import router as auth_router
 from bifrostnms.api.security import router as security_router
@@ -17,13 +17,19 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await Tortoise.init(config=TORTOISE_ORM)
-    if settings.auto_create_schema:
-        await Tortoise.generate_schemas(safe=True)
-    await get_redis().ping()
-    yield
-    await close_redis()
-    await Tortoise.close_connections()
+    # Tortoise 1.x stores connection state in TortoiseContext. Using the
+    # framework integration here ensures request tasks can see the active ORM
+    # context; calling Tortoise.init() directly inside the lifespan task does
+    # not provide that cross-task context reliably.
+    async with RegisterTortoise(
+        config=TORTOISE_ORM,
+        generate_schemas=settings.auto_create_schema,
+    ):
+        await get_redis().ping()
+        try:
+            yield
+        finally:
+            await close_redis()
 
 
 app = FastAPI(title="BifrostNMS", version="0.1.0-dev", lifespan=lifespan)
