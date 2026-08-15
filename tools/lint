@@ -1,14 +1,196 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env python3
 
-ruff check backend
-mypy backend
-(
-  cd agent
-  test -z "$(gofmt -l .)"
-  go vet ./...
-)
+import argparse
 
-if [[ -f frontend/package.json ]]; then
-  pnpm --dir frontend lint
-fi
+from lib.custom_check import non_py_rules
+from zulint.command import LinterConfig, add_default_linter_arguments
+from zulint.custom_rules import RuleList
+
+MYPY = False
+if MYPY:
+    pass
+
+
+def run() -> None:
+    parser = argparse.ArgumentParser()
+    # Add a parameter that is passed if running in a git hook
+    parser.add_argument(
+        "--from-hook",
+        action="store_true",
+        help="Indicates that this script is being run from a git hook.",
+    )
+
+    add_default_linter_arguments(parser)
+    args = parser.parse_args()
+
+    linter_config = LinterConfig(args)
+
+    # Linters will be run on these file types.
+    # eg: file_types = ['py', 'html', 'css', 'js']
+
+    EXCLUDED_FILES: list[str] = ["static/"]
+    by_lang = linter_config.list_files(
+        groups={
+            "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
+            "frontend": ["css", "html", "js", "jsx", "ts", "tsx", "mdx", "svg"],
+        },
+        exclude=EXCLUDED_FILES,
+    )
+
+    custom_lang = linter_config.list_files(
+        groups={
+            "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
+            "frontend": ["css", "js", "jsx", "ts", "tsx", "mdx", "svg"],
+        },
+        exclude=EXCLUDED_FILES,
+    )
+
+    FRONTEND_DIRS = [
+        "website",
+        "auth-frontend",
+    ]
+
+    for frontend_dir in FRONTEND_DIRS:
+        linter_config.external_linter(
+            "css",
+            [
+                "pnpm",
+                "exec",
+                "stylelint",
+                "**/*.{css,scss}",
+                "--allow-empty-input",  # avoids non-zero exit when a dir has no css
+            ],
+            ["css"],
+            fix_arg="--fix",
+            description=f"Stylelint in {frontend_dir} (config: stylelint.config.js)",
+            cwd=frontend_dir,
+            pass_targets=False,  # IMPORTANT: don't pass zulint's repo-root file list
+        )
+
+        # ESLINT — run within each frontend dir, target local files
+        linter_config.external_linter(
+            "eslint",
+            [
+                "pnpm",
+                "exec",
+                "eslint",
+                ".",  # lint the directory
+                "--max-warnings=0",
+                "--cache",
+            ],
+            ["js", "ts", "tsx", "jsx"],
+            fix_arg="--fix",
+            description=f"ESLint in {frontend_dir} (config: eslint.config.js / .eslintrc*)",
+            cwd=frontend_dir,
+            pass_targets=False,  # IMPORTANT: same reason as above
+        )
+
+    linter_config.external_linter(
+        "templates",
+        ["tools/check-templates", "--roots", "frontend", "admin-frontend", "website"],
+        ["hbs", "html"],
+        description="Custom linter checks whitespace formatting of HTML templates",
+        fix_arg="--fix",
+    )
+
+    linter_config.external_linter(
+        "shellcheck",
+        ["shellcheck", "-x", "-P", "SCRIPTDIR"],
+        ["sh", "bash"],
+        description="Standard shell script linter",
+    )
+
+    linter_config.external_linter(
+        "shfmt",
+        ["shfmt"],
+        ["sh", "bash"],
+        check_arg="-d",
+        fix_arg="-w",
+        description="Formats shell scripts",
+    )
+
+    command = ["tools/run-mypy", "--quiet"]
+    linter_config.external_linter(
+        "mypy",
+        command,
+        ["py", "pyi"],
+        pass_targets=False,
+        description="Static type checker for Python",
+    )
+
+    linter_config.external_linter(
+        "ruff",
+        ["ruff", "check", "--quiet"],
+        ["py", "pyi"],
+        fix_arg="--fix",
+        description="Python linter",
+    )
+
+    # pass the --hook argument to commit-message-lint if we're running in a git hook
+    if args.from_hook:
+        linter_config.external_linter(
+            "gitlint",
+            ["tools/commit-message-lint", "--hook"],
+            description="Checks commit messages for common formatting errors (config: .gitlint)",
+        )
+    else:
+        linter_config.external_linter(
+            "gitlint",
+            ["tools/commit-message-lint"],
+            description="Checks commit messages for common formatting errors (config: .gitlint)",
+        )
+    linter_config.external_linter(
+        "prettier",
+        ["node_modules/.bin/prettier", "--check", "--log-level=warn"],
+        ["css", "js", "json", "md", "ts", "yaml", "yml"],
+        fix_arg=["--write"],
+        description="Formats CSS, JavaScript, YAML",
+    )
+
+    linter_config.external_linter(
+        "ruff-format",
+        ["ruff", "format", "--quiet"],
+        ["py", "pyi"],
+        description="Reformats Python code",
+        check_arg=["--check"],
+    )
+
+    linter_config.external_linter(
+        "format-mdx",
+        ["tools/format-mdx"],
+        ["mdx"],
+        description="Lint and format MDX files",
+    )
+
+    # Create a sequence from by_lang
+    by_lang_sequence = list(by_lang)
+
+    @linter_config.lint
+    def check_custom_rules() -> int:
+        """Check trailing whitespace for specified files"""
+        trailing_whitespace_rule = RuleList(
+            langs=by_lang_sequence,
+            rules=[
+                {
+                    "pattern": r"\s+$",
+                    "strip": "\n",
+                    "description": "Fix trailing whitespace",
+                }
+            ],
+        )
+        failed = trailing_whitespace_rule.check(custom_lang, verbose=args.verbose)
+        return 1 if failed else 0
+
+    @linter_config.lint
+    def custom_nonpy() -> int:
+        """Runs custom checks for non-python files (config: tools/lib/custom_check.py)"""
+        failed = False
+        for rule in non_py_rules:
+            failed = failed or rule.check(by_lang, verbose=args.verbose)
+        return 1 if failed else 0
+
+    linter_config.do_lint()
+
+
+if __name__ == "__main__":
+    run()

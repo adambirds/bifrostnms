@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Test auth frontend (Next.js)
+echo "🧪 Testing auth frontend..."
+cd auth-frontend || exit 1
+if ! pnpm test; then
+	echo "❌ Auth frontend tests failed"
+	exit 1
+fi

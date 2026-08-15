@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from zulint import lister
+
+EXCLUDE_FILES: list[str] = [
+    "apps/realms/middleware.py",
+]
+
+# --- Resolve paths robustly (works in devcontainer and CI) --------------------
+THIS_FILE = Path(__file__).resolve()
+TOOLS_DIR = THIS_FILE.parent  # .../tools
+REPO_ROOT = TOOLS_DIR.parent  # repo root
+BACKEND_DIR = REPO_ROOT / "backend"  # repo_root/backend
+
+# Run from the repo root so config discovery works consistently
+os.chdir(REPO_ROOT)
+
+# Make sure relative imports from tools/ still work if you have any
+sys.path.append(str(REPO_ROOT))
+
+parser = argparse.ArgumentParser(description="Run mypy on files tracked by git.")
+
+parser.add_argument(
+    "targets", nargs="*", default=[], help="Files/dirs to include. Default: current dir"
+)
+parser.add_argument(
+    "-m", "--modified", action="store_true", default=False, help="Only modified files"
+)
+parser.add_argument(
+    "-a",
+    "--all",
+    dest="all",
+    action="store_true",
+    default=False,
+    help="Run on all python files, ignoring the exclude list",
+)
+parser.add_argument(
+    "--no-disallow-untyped-defs", dest="disallow_untyped_defs", action="store_false", default=True
+)
+parser.add_argument("--scripts-only", dest="scripts_only", action="store_true", default=False)
+parser.add_argument(
+    "--no-strict-optional", dest="strict_optional", action="store_false", default=True
+)
+parser.add_argument(
+    "--warn-unused-ignores", dest="warn_unused_ignores", action="store_true", default=False
+)
+parser.add_argument(
+    "--no-ignore-missing-imports", dest="ignore_missing_imports", action="store_false", default=True
+)
+parser.add_argument("--quick", action="store_true", default=False)
+parser.add_argument("--quiet", action="store_true")
+
+args = parser.parse_args()
+
+files_dict = lister.list_files(
+    targets=args.targets,
+    ftypes=["py"],
+    use_shebang=True,
+    modified_only=args.modified,
+    group_by_ftype=True,
+    exclude=EXCLUDE_FILES,
+)
+
+pyi_files = set(files_dict["pyi"])
+python_files = [f for f in files_dict["py"] if not f.endswith(".py") or f + "i" not in pyi_files]
+
+if not python_files and not pyi_files:
+    print("There are no files to run mypy on.")
+    sys.exit(0)
+
+mypy_cmd = "mypy"
+extra_args = [
+    "--check-untyped-defs",
+    "--follow-imports=silent",
+    "--scripts-are-modules",
+    "--disallow-any-generics",
+    "-i",
+]
+
+if args.disallow_untyped_defs:
+    extra_args.append("--disallow-untyped-defs")
+if args.warn_unused_ignores:
+    extra_args.append("--warn-unused-ignores")
+if args.strict_optional:
+    extra_args.append("--strict-optional")
+if args.ignore_missing_imports:
+    extra_args.append("--ignore-missing-imports")
+if args.quick:
+    extra_args.append("--quick")
+if args.quiet:
+    extra_args.append("--no-error-summary")
+
+# --- Environment for mypy + Django plugin ------------------------------------
+env = os.environ.copy()
+env["MYPY_RUNNING"] = "1"
+
+# Prepend backend to PYTHONPATH, preserving anything already set
+existing_pp = env.get("PYTHONPATH", "")
+pp_parts = [str(BACKEND_DIR)]
+if existing_pp:
+    pp_parts.append(existing_pp)
+env["PYTHONPATH"] = os.pathsep.join(pp_parts)
+
+# If not already set by CI/local shell, set Django settings module so the
+# mypy-django plugin can import your project
+env.setdefault("DJANGO_SETTINGS_MODULE", "techwiki.settings")
+env.setdefault("MYPY_DJANGO_SETTINGS_MODULE", env["DJANGO_SETTINGS_MODULE"])
+
+# Run mypy from repo root; paths listed by zulint are already repo-relative
+status = subprocess.call([mypy_cmd, *extra_args, *python_files], env=env)
+
+if status != 0:
+    print("\nSee https://zulip.readthedocs.io/en/latest/testing/mypy.html for debugging tips.")
+sys.exit(status)
