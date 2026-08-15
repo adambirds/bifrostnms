@@ -12,9 +12,17 @@ from bifrostnms.auth.security import (
     normalize_email,
     verify_password,
 )
+from bifrostnms.auth.two_factor import create_login_challenge, user_has_two_factor
 from bifrostnms.config import get_settings
 from bifrostnms.models import Realm, RealmMembership, User, UserSession
-from bifrostnms.schemas.auth import AuthResponse, LoginRequest, RealmSummary, SignupRequest, UserResponse
+from bifrostnms.schemas.auth import (
+    AuthResponse,
+    LoginRequest,
+    LoginResponse,
+    RealmSummary,
+    SignupRequest,
+    UserResponse,
+)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -45,7 +53,10 @@ async def serialize_user(user: User, session: UserSession | None = None) -> User
 async def signup(payload: SignupRequest, request: Request, response: Response) -> AuthResponse:
     email = normalize_email(str(payload.email))
     if await User.filter(email=email).exists():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account already exists for that email")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account already exists for that email",
+        )
 
     user = await User.create(
         email=email,
@@ -65,21 +76,40 @@ async def signup(payload: SignupRequest, request: Request, response: Response) -
     realm = await Realm.create(name=realm_name, slug=slug)
     await RealmMembership.create(user=user, realm=realm, role="owner")
     await create_session(user, request, response)
-    session = await UserSession.filter(user=user).select_related("active_realm").order_by("-created_at").first()
+    session = (
+        await UserSession.filter(user=user)
+        .select_related("active_realm")
+        .order_by("-created_at")
+        .first()
+    )
     return AuthResponse(user=await serialize_user(user, session))
 
 
-@router.post("/login", response_model=AuthResponse)
-async def login(payload: LoginRequest, request: Request, response: Response) -> AuthResponse:
+@router.post("/login", response_model=LoginResponse)
+async def login(payload: LoginRequest, request: Request, response: Response) -> LoginResponse:
     user = await User.filter(email=normalize_email(str(payload.email))).first()
     if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
-    await create_session(user, request, response)
-    session = await UserSession.filter(user=user).select_related("active_realm").order_by("-created_at").first()
-    return AuthResponse(user=await serialize_user(user, session))
+    if await user_has_two_factor(user):
+        return LoginResponse(
+            requires_two_factor=True,
+            challenge_token=await create_login_challenge(user),
+        )
+
+    await create_session(user, request, response, auth_method="password")
+    session = (
+        await UserSession.filter(user=user)
+        .select_related("active_realm")
+        .order_by("-created_at")
+        .first()
+    )
+    return LoginResponse(user=await serialize_user(user, session))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -100,7 +130,11 @@ async def me(request: Request) -> AuthResponse:
 @router.post("/realm/{realm_id}/activate", response_model=AuthResponse)
 async def activate_realm(realm_id: UUID, request: Request) -> AuthResponse:
     user, session = await get_session_user(request)
-    membership = await RealmMembership.filter(user=user, realm_id=realm_id).select_related("realm").first()
+    membership = (
+        await RealmMembership.filter(user=user, realm_id=realm_id)
+        .select_related("realm")
+        .first()
+    )
     if not membership:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
     session.active_realm = membership.realm
