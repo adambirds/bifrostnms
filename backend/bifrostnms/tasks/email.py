@@ -7,7 +7,7 @@ from bifrostnms.email import EmailMessage, get_email_backend
 from bifrostnms.email.microsoft_graph import MicrosoftGraphDeliveryError
 
 
-@shared_task(
+@shared_task(  # type: ignore[untyped-decorator]
     name="bifrostnms.tasks.email.send_email",
     autoretry_for=(OSError, TimeoutError, requests.RequestException, MicrosoftGraphDeliveryError),
     retry_backoff=True,
