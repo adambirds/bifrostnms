@@ -108,7 +108,9 @@ async def verify_registration(
     )
 
     transports_value = credential.get("response", {}).get("transports", [])
-    transports = [str(value) for value in transports_value] if isinstance(transports_value, list) else []
+    transports = (
+        [str(value) for value in transports_value] if isinstance(transports_value, list) else []
+    )
     stored = await WebAuthnCredential.create(
         user=user,
         credential_id=_b64(verification.credential_id),

@@ -101,7 +101,9 @@ extra_args = [
 ]
 if args.disallow_untyped_defs:
     extra_args.append("--disallow-untyped-defs")
-extra_args.append("--warn-unused-ignores" if args.warn_unused_ignores else "--no-warn-unused-ignores")
+extra_args.append(
+    "--warn-unused-ignores" if args.warn_unused_ignores else "--no-warn-unused-ignores"
+)
 if args.strict_optional:
     extra_args.append("--strict-optional")
 if args.ignore_missing_imports:
