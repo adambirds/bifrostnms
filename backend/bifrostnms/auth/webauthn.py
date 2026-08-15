@@ -95,7 +95,7 @@ async def verify_registration(
 ) -> WebAuthnCredential:
     settings = get_settings()
     challenge = await _get_challenge(challenge_id, "webauthn_registration")
-    if challenge.user_id != user.id:
+    if challenge.user is None or challenge.user.id != user.id:
         raise ValueError("WebAuthn challenge does not belong to this user")
 
     expected_challenge = _unb64(str(challenge.metadata["challenge"]))
@@ -107,6 +107,8 @@ async def verify_registration(
         require_user_verification=True,
     )
 
+    transports_value = credential.get("response", {}).get("transports", [])
+    transports = [str(value) for value in transports_value] if isinstance(transports_value, list) else []
     stored = await WebAuthnCredential.create(
         user=user,
         credential_id=_b64(verification.credential_id),
@@ -115,7 +117,7 @@ async def verify_registration(
         name=name.strip() or "Passkey",
         device_type=str(verification.credential_device_type),
         backed_up=verification.credential_backed_up,
-        transports=credential.get("response", {}).get("transports", []),
+        transports=transports,
     )
     challenge.consumed_at = datetime.now(UTC)
     await challenge.save(update_fields=["consumed_at"])
