@@ -67,7 +67,6 @@ class MicrosoftGraphEmailBackend:
         private_key_passphrase: str | None = None,
         from_name: str | None = "BifrostNMS",
         timeout_seconds: float = 15.0,
-        save_to_sent_items: bool = True,
     ) -> None:
         for name, value in {
             "tenant_id": tenant_id,
@@ -87,7 +86,6 @@ class MicrosoftGraphEmailBackend:
         self.private_key_passphrase = private_key_passphrase
         self.from_name = from_name
         self.timeout_seconds = timeout_seconds
-        self.save_to_sent_items = save_to_sent_items
 
     def _get_access_token(self) -> str:
         credential: dict[str, str] = {
@@ -131,7 +129,6 @@ class MicrosoftGraphEmailBackend:
                 "Content-Type": "text/plain",
             },
             data=mime_base64,
-            params={"saveToSentItems": str(self.save_to_sent_items).lower()},
             timeout=self.timeout_seconds,
         )
         if response.status_code != 202:
