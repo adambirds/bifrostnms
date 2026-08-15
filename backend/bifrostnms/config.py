@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     auto_create_schema: bool = False
 
+    # Celery deliberately uses separate Redis logical databases from browser
+    # sessions so queue/result data cannot collide with session keys.
+    celery_broker_url: str = "redis://redis:6379/1"
+    celery_result_backend: str = "redis://redis:6379/2"
+    celery_task_always_eager: bool = False
+
     session_cookie_name: str = "bifrost_session"
     session_key_prefix: str = "bifrostnms:session:"
     session_ttl_days: int = 30

@@ -1,3 +1,4 @@
+celery[redis]>=5.6,<5.7
 cryptography
 fastapi
 pydantic[email]

@@ -6,11 +6,7 @@
       "type": "shell",
       "command": "PYTHONPATH=backend uvicorn bifrostnms.main:app --reload --host 0.0.0.0 --port 8000",
       "isBackground": true,
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "group": "bifrostnms"
-      },
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
       "problemMatcher": []
     },
     {
@@ -18,11 +14,7 @@
       "type": "shell",
       "command": "pnpm --dir frontend dev",
       "isBackground": true,
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "group": "bifrostnms"
-      },
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
       "problemMatcher": []
     },
     {
@@ -30,11 +22,23 @@
       "type": "shell",
       "command": "pnpm --dir auth-frontend dev",
       "isBackground": true,
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "group": "bifrostnms"
-      },
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "problemMatcher": []
+    },
+    {
+      "label": "start: celery worker",
+      "type": "shell",
+      "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app worker --loglevel=INFO --queues=default,email,notifications",
+      "isBackground": true,
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "problemMatcher": []
+    },
+    {
+      "label": "start: celery beat",
+      "type": "shell",
+      "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app beat --loglevel=INFO",
+      "isBackground": true,
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
       "problemMatcher": []
     },
     {
@@ -42,21 +46,19 @@
       "type": "shell",
       "command": "cd agent && go run ./cmd/bifrost-agent",
       "isBackground": true,
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "group": "bifrostnms"
-      },
+      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
       "problemMatcher": ["$go"]
     },
     {
       "label": "start: all web",
       "dependsOrder": "parallel",
-      "dependsOn": [
-        "start: api",
-        "start: dashboard",
-        "start: auth frontend"
-      ],
+      "dependsOn": ["start: api", "start: dashboard", "start: auth frontend"],
+      "problemMatcher": []
+    },
+    {
+      "label": "start: backend services",
+      "dependsOrder": "parallel",
+      "dependsOn": ["start: api", "start: celery worker", "start: celery beat"],
       "problemMatcher": []
     },
     {
@@ -66,8 +68,22 @@
         "start: api",
         "start: dashboard",
         "start: auth frontend",
+        "start: celery worker",
+        "start: celery beat",
         "start: agent"
       ],
+      "problemMatcher": []
+    },
+    {
+      "label": "celery: inspect ping",
+      "type": "shell",
+      "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app inspect ping",
+      "problemMatcher": []
+    },
+    {
+      "label": "celery: health task",
+      "type": "shell",
+      "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app call bifrostnms.tasks.system.healthcheck",
       "problemMatcher": []
     },
     {
