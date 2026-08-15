@@ -21,7 +21,7 @@ class User(TimestampedModel):
     first_name = fields.CharField(max_length=150)
     last_name = fields.CharField(max_length=150)
     is_active = fields.BooleanField(default=True)
-    is_staff = fields.BooleanField(default=False)
+    is_superuser = fields.BooleanField(default=False)
     email_verified = fields.BooleanField(default=False)
 
     memberships: fields.ReverseRelation[RealmMembership]
