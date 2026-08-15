@@ -10,11 +10,11 @@ from bifrostnms.auth.security import (
 )
 
 
-def test_normalize_email_trims_and_lowercases():
+def test_normalize_email_trims_and_lowercases() -> None:
     assert normalize_email("  Adam.Birds@Example.COM  ") == "adam.birds@example.com"
 
 
-def test_password_hash_round_trip():
+def test_password_hash_round_trip() -> None:
     encoded = hash_password("correct horse battery staple")
 
     assert encoded != "correct horse battery staple"
@@ -22,11 +22,11 @@ def test_password_hash_round_trip():
     assert verify_password("wrong password", encoded) is False
 
 
-def test_hash_token_is_deterministic_sha256():
+def test_hash_token_is_deterministic_sha256() -> None:
     assert hash_token("token") == "3c469e9d6c5875d37a43f3535f567666c7e0137a68e21193c044b7c08acec5f"
 
 
-def test_session_data_json_round_trip():
+def test_session_data_json_round_trip() -> None:
     now = datetime.now(UTC)
     user_id = uuid4()
     realm_id = uuid4()
@@ -55,7 +55,7 @@ def test_session_data_json_round_trip():
     assert "redis_key" not in raw
 
 
-def test_session_data_supports_no_active_realm():
+def test_session_data_supports_no_active_realm() -> None:
     now = datetime.now(UTC)
     session = SessionData(
         user_id=uuid4(),
