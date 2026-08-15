@@ -1,9 +1,15 @@
 -r common.in
 
+# Test and development tooling
 httpx
 mypy
 pip-tools
 pytest
 pytest-asyncio
 pytest-cov
+coverage
+
+# Shared repository linting framework and helpers used by tools/lint
+gitlint-core
+adamlint
 ruff
