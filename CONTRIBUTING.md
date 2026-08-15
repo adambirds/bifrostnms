@@ -39,6 +39,14 @@ allow a small, single-purpose, low-risk change to be committed directly to
 workflow and never applies to large or multi-feature changes. When in doubt, use
 a branch and pull request.
 
+Keep the repository history linear. Fetch and rebase your branch onto the latest
+target branch before opening or updating a pull request; do not merge `main` into
+your working branch and do not create merge commits. If a rebase rewrites
+commits already published on the remote and makes the update non-fast-forward,
+use `git push --force-with-lease`, never plain `--force`; otherwise use a normal
+push. Resolve conflicts carefully and rerun the relevant checks after the
+rebase.
+
 Commit messages are checked automatically with gitlint and must use this title
 format:
 

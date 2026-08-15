@@ -113,6 +113,15 @@ single-purpose, low-risk change to be committed directly to `main`. Treat this a
 an exception, not the default, and do not apply it to large or multi-feature work.
 If the intended workflow is unclear, use a branch and pull request.
 
+Keep Git history linear. Update a working branch by fetching the target branch
+and rebasing onto it; do not merge `main` or another target branch into the
+working branch. Do not create or push merge commits. If rebasing a published
+branch rewrites commits that already exist on the remote and makes the update
+non-fast-forward, use `git push --force-with-lease`, never plain `--force`. A
+normal push remains appropriate when the remote branch is still an ancestor of
+the local branch. Resolve rebase conflicts deliberately, rerun the relevant
+checks and verify the rewritten commit history before pushing.
+
 For Go, keep dependencies minimal; `tools/lint` runs `gofmt` and `go vet`, and
 `tools/lint --fix` applies `gofmt`. For Python, use modern typing and async APIs.
 For TypeScript, keep strict typing and avoid `any` unless unavoidable and
