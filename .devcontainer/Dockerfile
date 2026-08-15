@@ -10,7 +10,7 @@ ENV PNPM_HOME=/usr/local/share/pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf automake bash-completion build-essential ca-certificates curl dnsutils fping gcc git htop \
     iproute2 iputils-ping jq libffi-dev libpq-dev libtool locales netcat-openbsd pkg-config \
-    postgresql-client procps shellcheck sudo traceroute vim wget \
+    postgresql-client procps python3 python3-dev python3-pip python3-venv shellcheck sudo traceroute vim wget \
     && locale-gen en_GB.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -30,6 +30,8 @@ RUN chmod +x /tmp/install-shellcheck /tmp/install-shfmt \
     && /tmp/install-shfmt \
     && rm -f /tmp/install-shellcheck /tmp/install-shfmt
 
+# Create the project virtualenv before Dev Container features are applied so
+# /opt/venv exists for VS Code, post-create.sh and non-interactive shells.
 RUN python3 -m venv /opt/venv
 ENV VIRTUAL_ENV=/opt/venv
 
