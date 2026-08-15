@@ -11,44 +11,13 @@
     "ghcr.io/devcontainers/features/python:1": { "version": "3.12", "installTools": true },
     "ghcr.io/devcontainers/features/go:1": {}
   },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python", "ms-python.pylance", "charliermarsh.ruff",
-        "golang.go",
-        "esbenp.prettier-vscode", "dbaeumer.vscode-eslint", "bradlc.vscode-tailwindcss", "stylelint.vscode-stylelint", "ms-vscode.vscode-typescript-next",
-        "github.copilot", "github.copilot-chat", "github.vscode-pull-request-github", "github.remotehub",
-        "ms-azuretools.vscode-docker", "eamodio.gitlens", "codezombiech.gitignore",
-        "ms-vscode.vscode-json", "redhat.vscode-yaml", "redhat.vscode-xml", "jock.svg", "unifiedjs.vscode-mdx", "openai.chatgpt"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/opt/venv/bin/python",
-        "python.terminal.activateEnvironment": true,
-        "editor.formatOnSave": true,
-        "[go]": { "editor.defaultFormatter": "golang.go", "editor.formatOnSave": true },
-        "editor.codeActionsOnSave": { "source.organizeImports": "explicit" },
-        "files.exclude": { "**/__pycache__": true, "**/*.pyc": true }
-      }
-    }
-  },
-  "forwardPorts": [8000, 5173, 5432, 6379],
-  "portsAttributes": {
-    "8000": { "label": "BifrostNMS API", "onAutoForward": "notify" },
-    "5173": { "label": "BifrostNMS Web", "onAutoForward": "notify" },
-    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
-    "6379": { "label": "Redis", "onAutoForward": "silent" }
-  },
+  "customizations": {"vscode": {"extensions": ["ms-python.python","ms-python.pylance","charliermarsh.ruff","golang.go","esbenp.prettier-vscode","dbaeumer.vscode-eslint","bradlc.vscode-tailwindcss","stylelint.vscode-stylelint","ms-vscode.vscode-typescript-next","github.copilot","github.copilot-chat","github.vscode-pull-request-github","github.remotehub","ms-azuretools.vscode-docker","eamodio.gitlens","codezombiech.gitignore","ms-vscode.vscode-json","redhat.vscode-yaml","redhat.vscode-xml","jock.svg","unifiedjs.vscode-mdx","openai.chatgpt"],"settings":{"python.defaultInterpreterPath":"/opt/venv/bin/python","python.terminal.activateEnvironment":true,"editor.formatOnSave":true,"[go]":{"editor.defaultFormatter":"golang.go","editor.formatOnSave":true},"editor.codeActionsOnSave":{"source.organizeImports":"explicit"},"files.exclude":{"**/__pycache__":true,"**/*.pyc":true}}}},
+  "forwardPorts": [8000,3000,3001,5432,6379],
+  "portsAttributes": {"8000":{"label":"BifrostNMS API","onAutoForward":"notify"},"3000":{"label":"BifrostNMS Dashboard","onAutoForward":"notify"},"3001":{"label":"BifrostNMS Auth","onAutoForward":"notify"},"5432":{"label":"PostgreSQL","onAutoForward":"silent"},"6379":{"label":"Redis","onAutoForward":"silent"}},
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "postStartCommand": "bash .devcontainer/scripts/link-host-git-config.sh",
   "remoteUser": "root",
-  "remoteEnv": { "VIRTUAL_ENV": "/opt/venv", "PATH": "/opt/venv/bin:${containerEnv:PATH}" },
-  "mounts": [
-    "source=bifrostnms-bash-history,target=/root/.history,type=volume",
-    "source=bifrostnms-codex-config,target=/root/.codex,type=volume",
-    "source=bifrostnms-claude-config,target=/root/.claude,type=volume",
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "source=${localEnv:HOME},target=/host-home,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached,readonly"
-  ],
-  "containerEnv": { "CLAUDE_CONFIG_DIR": "/root/.claude", "CODEX_HOME": "/root/.codex" }
+  "remoteEnv": {"VIRTUAL_ENV":"/opt/venv","PATH":"/opt/venv/bin:${containerEnv:PATH}"},
+  "mounts": ["source=bifrostnms-bash-history,target=/root/.history,type=volume","source=bifrostnms-codex-config,target=/root/.codex,type=volume","source=bifrostnms-claude-config,target=/root/.claude,type=volume","source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached","source=${localEnv:HOME},target=/host-home,type=bind,consistency=cached","source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached,readonly"],
+  "containerEnv": {"CLAUDE_CONFIG_DIR":"/root/.claude","CODEX_HOME":"/root/.codex"}
 }

@@ -20,6 +20,7 @@ node_modules/
 .pnpm-store/
 dist/
 .vite/
+.next/
 
 # Go
 agent/bin/

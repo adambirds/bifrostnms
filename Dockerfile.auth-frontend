@@ -1,0 +1,18 @@
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY auth-frontend/package.json ./auth-frontend/package.json
+RUN pnpm install --filter @bifrostnms/auth-frontend... --frozen-lockfile
+
+FROM deps AS build
+COPY auth-frontend ./auth-frontend
+RUN pnpm --dir auth-frontend build
+
+FROM node:22-alpine AS runtime
+WORKDIR /app/auth-frontend
+ENV NODE_ENV=production
+COPY --from=build /app/auth-frontend/.next/standalone ./
+COPY --from=build /app/auth-frontend/.next/static ./.next/static
+EXPOSE 3001
+CMD ["node", "server.js"]

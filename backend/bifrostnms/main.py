@@ -1,6 +1,36 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="BifrostNMS", version="0.0.0")
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from tortoise import Tortoise
+
+from bifrostnms.api.auth import router as auth_router
+from bifrostnms.config import get_settings
+
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await Tortoise.init(
+        db_url=settings.database_url,
+        modules={"models": ["bifrostnms.models"]},
+    )
+    if settings.auto_create_schema:
+        await Tortoise.generate_schemas(safe=True)
+    yield
+    await Tortoise.close_connections()
+
+
+app = FastAPI(title="BifrostNMS", version="0.1.0-dev", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["system"])
