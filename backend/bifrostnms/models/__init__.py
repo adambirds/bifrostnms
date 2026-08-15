@@ -5,7 +5,6 @@ from .auth import (
     RecoveryCode,
     TwoFactorMethod,
     User,
-    UserSession,
     WebAuthnCredential,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "RecoveryCode",
     "TwoFactorMethod",
     "User",
-    "UserSession",
     "WebAuthnCredential",
 ]

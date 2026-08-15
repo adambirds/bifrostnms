@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend"
+exec tortoise -c bifrostnms.database.TORTOISE_ORM migrate "$@"

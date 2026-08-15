@@ -1,9 +1,10 @@
+cryptography
 fastapi
 pydantic[email]
 pydantic-settings
 pwdlib[argon2]
+pyotp
+redis[hiredis]
 tortoise-orm[asyncpg]
 uvicorn[standard]
-cryptography
-pyotp
-webauthn>=3.0,<4
+webauthn

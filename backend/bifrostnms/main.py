@@ -8,20 +8,21 @@ from bifrostnms.api.auth import router as auth_router
 from bifrostnms.api.security import router as security_router
 from bifrostnms.api.two_factor import router as two_factor_router
 from bifrostnms.api.webauthn import router as webauthn_router
+from bifrostnms.auth.redis import close_redis, get_redis
 from bifrostnms.config import get_settings
+from bifrostnms.database import TORTOISE_ORM
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await Tortoise.init(
-        db_url=settings.database_url,
-        modules={"models": ["bifrostnms.models"]},
-    )
+    await Tortoise.init(config=TORTOISE_ORM)
     if settings.auto_create_schema:
         await Tortoise.generate_schemas(safe=True)
+    await get_redis().ping()
     yield
+    await close_redis()
     await Tortoise.close_connections()
 
 

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/backend"
+if ! find backend/bifrostnms/migrations -maxdepth 1 -type f -name '0*.py' -print -quit | grep -q .; then
+	echo "No migrations found; creating initial migration..."
+	tortoise -c bifrostnms.database.TORTOISE_ORM makemigrations --name initial
+fi
+tortoise -c bifrostnms.database.TORTOISE_ORM migrate

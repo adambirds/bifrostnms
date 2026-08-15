@@ -25,7 +25,6 @@ class User(TimestampedModel):
     email_verified = fields.BooleanField(default=False)
 
     memberships: fields.ReverseRelation[RealmMembership]
-    sessions: fields.ReverseRelation[UserSession]
     webauthn_credentials: fields.ReverseRelation[WebAuthnCredential]
     two_factor_methods: fields.ReverseRelation[TwoFactorMethod]
     recovery_codes: fields.ReverseRelation[RecoveryCode]
@@ -56,22 +55,6 @@ class RealmMembership(TimestampedModel):
 
     class Meta:
         unique_together = (("user", "realm"),)
-
-
-class UserSession(TimestampedModel):
-    id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
-        "models.User", related_name="sessions", on_delete=fields.CASCADE
-    )
-    active_realm: fields.ForeignKeyNullableRelation[Realm] = fields.ForeignKeyField(
-        "models.Realm", related_name=False, null=True, on_delete=fields.SET_NULL
-    )
-    token_hash = fields.CharField(max_length=64, unique=True, index=True)
-    expires_at = fields.DatetimeField(index=True)
-    last_activity = fields.DatetimeField(auto_now_add=True)
-    auth_method = fields.CharField(max_length=32, default="password")
-    user_agent = fields.TextField(default="")
-    ip_address = fields.CharField(max_length=64, null=True)
 
 
 class WebAuthnCredential(TimestampedModel):
