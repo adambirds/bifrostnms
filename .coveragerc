@@ -1,10 +1,37 @@
-[run]
-branch = True
-source = backend/bifrostnms
-
 [report]
 show_missing = True
 skip_covered = True
+
+# Regexes for lines to exclude from consideration.
 exclude_lines =
+    # Re-enable the standard coverage pragma.
     pragma: no cover
+    # Don't complain if non-runnable code isn't run.
+    if False:
+    # Don't require coverage for base class NotImplementedErrors.
+    raise NotImplementedError
+    # Don't require coverage for test suite AssertionErrors; they're usually for clarity.
+    raise AssertionError
+    # Don't require coverage for __str__ and __repr__ methods used for printing.
+    def __(repr|str)__[(]self[)] -> .*:
+    # Don't require coverage for blocks only run when type-checking.
     if TYPE_CHECKING:
+    # Don't require coverage for abstract methods; they're never called.
+    @abstractmethod
+    # PEP 484 overloading syntax.
+    ^\s*\.\.\.
+    # Skipped unit tests.
+    @skip
+
+[run]
+source = .
+data_file = .coverage
+branch = True
+
+omit =
+    tools/*
+    */venv/*
+    */.venv/*
+    */migrations/*
+    */node_modules/*
+    */requirements/*

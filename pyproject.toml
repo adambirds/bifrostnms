@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config --cov=bifrostnms --cov-report=term-missing"
+addopts = "--strict-markers --strict-config --cov=bifrostnms --cov-context=test --cov-report=term-missing"
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
