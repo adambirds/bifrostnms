@@ -56,6 +56,8 @@ Then visit `http://localhost:3001` to create/sign into an account and `http://lo
 
 Documentation:
 
+- `PLAN.md`
+- `docs/architecture.md`
 - `docs/development/local-development.md`
 - `docs/development/database-migrations.md`
 - `docs/architecture/authentication.md`
