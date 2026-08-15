@@ -21,6 +21,9 @@ node_modules/
 dist/
 .vite/
 .next/
+.eslintcache
+*.tsbuildinfo
+coverage/
 
 # Go
 agent/bin/
