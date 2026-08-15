@@ -3,7 +3,7 @@ import pytest
 from bifrostnms.email.base import EmailMessage, build_mime_message
 
 
-def test_build_mime_message_text_only():
+def test_build_mime_message_text_only() -> None:
     email = build_mime_message(
         EmailMessage(
             to=["one@example.com", "two@example.com"],
@@ -24,7 +24,7 @@ def test_build_mime_message_text_only():
     assert "Hello world" in email.get_content()
 
 
-def test_build_mime_message_with_html_alternative():
+def test_build_mime_message_with_html_alternative() -> None:
     email = build_mime_message(
         EmailMessage(
             to=["user@example.com"],
@@ -43,7 +43,7 @@ def test_build_mime_message_with_html_alternative():
     assert "<strong>HTML</strong>" in parts[1].get_content()
 
 
-def test_build_mime_message_requires_recipient():
+def test_build_mime_message_requires_recipient() -> None:
     with pytest.raises(ValueError, match="at least one recipient"):
         build_mime_message(
             EmailMessage(to=[], subject="No recipient", text="Hello"),
