@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "lint", "type": "shell", "command": "tools/lint", "group": "test", "problemMatcher": [] },
+    { "label": "test all", "type": "shell", "command": "tools/test-all", "group": "test", "problemMatcher": [] },
+    { "label": "backend", "type": "shell", "command": "cd backend && uvicorn bifrostnms.main:app --reload --host 0.0.0.0 --port 8000", "isBackground": true, "problemMatcher": [] },
+    { "label": "frontend", "type": "shell", "command": "pnpm --dir frontend dev --host 0.0.0.0", "isBackground": true, "problemMatcher": [] },
+    { "label": "agent", "type": "shell", "command": "cd agent && go run ./cmd/bifrost-agent", "problemMatcher": ["$go"] }
+  ]
+}

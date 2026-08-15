@@ -1,0 +1,4 @@
+fastapi
+pydantic-settings
+tortoise-orm[asyncpg]
+uvicorn[standard]

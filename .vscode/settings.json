@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "/opt/venv/bin/python",
+  "editor.formatOnSave": true,
+  "ruff.nativeServer": "on",
+  "go.formatTool": "gofmt",
+  "go.lintTool": "staticcheck",
+  "go.testFlags": ["-race"],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
