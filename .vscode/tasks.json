@@ -89,6 +89,12 @@
       "problemMatcher": []
     },
     {
+      "label": "user: create superuser",
+      "type": "shell",
+      "command": "tools/create-superuser",
+      "problemMatcher": []
+    },
+    {
       "label": "lint",
       "type": "shell",
       "command": "tools/lint",
