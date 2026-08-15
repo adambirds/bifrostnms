@@ -31,6 +31,7 @@ class UserResponse(BaseModel):
     last_name: str
     full_name: str
     email_verified: bool
+    is_superuser: bool
     active_realm_id: UUID | None
     realms: list[RealmSummary]
 
