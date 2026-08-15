@@ -2,24 +2,11 @@ from __future__ import annotations
 
 import smtplib
 import ssl
-from dataclasses import dataclass, field
-from email.message import EmailMessage as StdlibEmailMessage
-from email.utils import formataddr
 from typing import Literal
 
-from bifrostnms.config import get_settings
+from bifrostnms.email.base import EmailMessage, build_mime_message
 
 SMTP_SECURITY = Literal["none", "starttls", "ssl"]
-
-
-@dataclass(slots=True)
-class EmailMessage:
-    to: list[str]
-    subject: str
-    text: str
-    html: str | None = None
-    reply_to: str | None = None
-    headers: dict[str, str] = field(default_factory=dict)
 
 
 class SMTPEmailBackend:
@@ -56,22 +43,11 @@ class SMTPEmailBackend:
         return self.username is not None and self.password is not None
 
     def send(self, message: EmailMessage) -> None:
-        if not message.to:
-            raise ValueError("Email message must contain at least one recipient")
-
-        email = StdlibEmailMessage()
-        email["From"] = formataddr((self.from_name or "", self.from_email))
-        email["To"] = ", ".join(message.to)
-        email["Subject"] = message.subject
-        if message.reply_to:
-            email["Reply-To"] = message.reply_to
-        for key, value in message.headers.items():
-            email[key] = value
-
-        email.set_content(message.text)
-        if message.html:
-            email.add_alternative(message.html, subtype="html")
-
+        email = build_mime_message(
+            message,
+            from_email=self.from_email,
+            from_name=self.from_name,
+        )
         context = ssl.create_default_context()
 
         if self.security == "ssl":
@@ -91,23 +67,9 @@ class SMTPEmailBackend:
                 client.ehlo()
             self._authenticate_and_send(client, email)
 
-    def _authenticate_and_send(self, client: smtplib.SMTP, email: StdlibEmailMessage) -> None:
+    def _authenticate_and_send(self, client: smtplib.SMTP, email: object) -> None:
         if self.authenticated:
             assert self.username is not None
             assert self.password is not None
             client.login(self.username, self.password)
         client.send_message(email)
-
-
-def get_email_backend() -> SMTPEmailBackend:
-    settings = get_settings()
-    return SMTPEmailBackend(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-        security=settings.smtp_security,
-        timeout_seconds=settings.smtp_timeout_seconds,
-        from_email=settings.smtp_from_email,
-        from_name=settings.smtp_from_name,
-        username=settings.smtp_username,
-        password=settings.smtp_password,
-    )
