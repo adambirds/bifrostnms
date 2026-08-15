@@ -3,30 +3,35 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bifrostnms.email.smtp import EmailMessage, SMTPEmailBackend
+from bifrostnms.email.base import EmailMessage
+from bifrostnms.email.smtp import SMTP_SECURITY, SMTPEmailBackend
 
 
-def make_backend(**overrides):
-    values = {
-        "host": "smtp.example.com",
-        "port": 587,
-        "security": "starttls",
-        "timeout_seconds": 10,
-        "from_email": "bifrost@example.com",
-        "from_name": "BifrostNMS",
-        "username": None,
-        "password": None,
-    }
-    values.update(overrides)
-    return SMTPEmailBackend(**values)
+def make_backend(
+    *,
+    security: SMTP_SECURITY = "starttls",
+    port: int = 587,
+    username: str | None = None,
+    password: str | None = None,
+) -> SMTPEmailBackend:
+    return SMTPEmailBackend(
+        host="smtp.example.com",
+        port=port,
+        security=security,
+        timeout_seconds=10,
+        from_email="bifrost@example.com",
+        from_name="BifrostNMS",
+        username=username,
+        password=password,
+    )
 
 
-def test_credentials_must_be_complete():
+def test_credentials_must_be_complete() -> None:
     with pytest.raises(ValueError, match="both be set or both be omitted"):
         make_backend(username="user")
 
 
-def test_unauthenticated_starttls_does_not_login():
+def test_unauthenticated_starttls_does_not_login() -> None:
     client = MagicMock()
     manager = MagicMock()
     manager.__enter__.return_value = client
@@ -46,7 +51,7 @@ def test_unauthenticated_starttls_does_not_login():
     client.send_message.assert_called_once()
 
 
-def test_authenticated_starttls_logs_in():
+def test_authenticated_starttls_logs_in() -> None:
     client = MagicMock()
     manager = MagicMock()
     manager.__enter__.return_value = client
@@ -69,7 +74,7 @@ def test_authenticated_starttls_logs_in():
     assert sent["To"] == "user@example.com"
 
 
-def test_ssl_uses_smtp_ssl():
+def test_ssl_uses_smtp_ssl() -> None:
     client = MagicMock()
     manager = MagicMock()
     manager.__enter__.return_value = client
