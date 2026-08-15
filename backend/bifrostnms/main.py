@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -16,7 +17,7 @@ settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Tortoise 1.x stores connection state in TortoiseContext. Using the
     # framework integration here ensures request tasks can see the active ORM
     # context; calling Tortoise.init() directly inside the lifespan task does
