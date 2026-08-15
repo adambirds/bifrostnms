@@ -8,7 +8,7 @@ from bifrostnms.email.microsoft_graph import MicrosoftGraphEmailBackend
 from bifrostnms.email.smtp import SMTPEmailBackend
 
 
-def test_selects_smtp_backend():
+def test_selects_smtp_backend() -> None:
     settings = SimpleNamespace(
         email_backend="smtp",
         smtp_host="smtp.example.com",
@@ -29,7 +29,7 @@ def test_selects_smtp_backend():
     assert backend.authenticated is False
 
 
-def test_selects_microsoft_graph_backend():
+def test_selects_microsoft_graph_backend() -> None:
     settings = SimpleNamespace(
         email_backend="microsoft_graph",
         microsoft_graph_private_key_base64="",
@@ -62,7 +62,7 @@ def test_selects_microsoft_graph_backend():
     assert backend.sender_email == "bifrost@example.com"
 
 
-def test_unknown_email_backend_is_rejected():
+def test_unknown_email_backend_is_rejected() -> None:
     settings = SimpleNamespace(email_backend="carrier_pigeon")
 
     with patch("bifrostnms.email.get_settings", return_value=settings):
