@@ -1,0 +1,9 @@
+-r common.in
+
+httpx
+mypy
+pip-tools
+pytest
+pytest-asyncio
+pytest-cov
+ruff

@@ -1,0 +1,19 @@
+{
+  "name": "bifrostnms",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "lint": "eslint frontend --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "stylelint": "stylelint 'frontend/**/*.{css,scss}'"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "eslint": "latest",
+    "prettier": "latest",
+    "stylelint": "latest",
+    "stylelint-config-standard": "latest",
+    "typescript-eslint": "latest"
+  }
+}

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ruff check backend
+mypy backend
+(
+  cd agent
+  test -z "$(gofmt -l .)"
+  go vet ./...
+)
+
+if [[ -f frontend/package.json ]]; then
+  pnpm --dir frontend lint
+fi
