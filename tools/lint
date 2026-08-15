@@ -13,7 +13,6 @@ if MYPY:
 
 def run() -> None:
     parser = argparse.ArgumentParser()
-    # Add a parameter that is passed if running in a git hook
     parser.add_argument(
         "--from-hook",
         action="store_true",
@@ -25,16 +24,13 @@ def run() -> None:
 
     linter_config = LinterConfig(args)
 
-    # Linters will be run on these file types.
-    # eg: file_types = ['py', 'html', 'css', 'js']
-
-    EXCLUDED_FILES: list[str] = ["static/"]
+    excluded_files: list[str] = ["static/"]
     by_lang = linter_config.list_files(
         groups={
             "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
             "frontend": ["css", "html", "js", "jsx", "ts", "tsx", "mdx", "svg"],
         },
-        exclude=EXCLUDED_FILES,
+        exclude=excluded_files,
     )
 
     custom_lang = linter_config.list_files(
@@ -42,15 +38,15 @@ def run() -> None:
             "backend": ["bash", "json", "md", "py", "pyi", "sh", "text", "txt", "yaml", "yml"],
             "frontend": ["css", "js", "jsx", "ts", "tsx", "mdx", "svg"],
         },
-        exclude=EXCLUDED_FILES,
+        exclude=excluded_files,
     )
 
-    FRONTEND_DIRS = [
-        "website",
+    frontend_dirs = [
+        "frontend",
         "auth-frontend",
     ]
 
-    for frontend_dir in FRONTEND_DIRS:
+    for frontend_dir in frontend_dirs:
         linter_config.external_linter(
             "css",
             [
@@ -58,23 +54,22 @@ def run() -> None:
                 "exec",
                 "stylelint",
                 "**/*.{css,scss}",
-                "--allow-empty-input",  # avoids non-zero exit when a dir has no css
+                "--allow-empty-input",
             ],
             ["css"],
             fix_arg="--fix",
             description=f"Stylelint in {frontend_dir} (config: stylelint.config.js)",
             cwd=frontend_dir,
-            pass_targets=False,  # IMPORTANT: don't pass zulint's repo-root file list
+            pass_targets=False,
         )
 
-        # ESLINT — run within each frontend dir, target local files
         linter_config.external_linter(
             "eslint",
             [
                 "pnpm",
                 "exec",
                 "eslint",
-                ".",  # lint the directory
+                ".",
                 "--max-warnings=0",
                 "--cache",
             ],
@@ -82,12 +77,12 @@ def run() -> None:
             fix_arg="--fix",
             description=f"ESLint in {frontend_dir} (config: eslint.config.js / .eslintrc*)",
             cwd=frontend_dir,
-            pass_targets=False,  # IMPORTANT: same reason as above
+            pass_targets=False,
         )
 
     linter_config.external_linter(
         "templates",
-        ["tools/check-templates", "--roots", "frontend", "admin-frontend", "website"],
+        ["tools/check-templates", "--roots", "frontend", "auth-frontend"],
         ["hbs", "html"],
         description="Custom linter checks whitespace formatting of HTML templates",
         fix_arg="--fix",
@@ -126,7 +121,6 @@ def run() -> None:
         description="Python linter",
     )
 
-    # pass the --hook argument to commit-message-lint if we're running in a git hook
     if args.from_hook:
         linter_config.external_linter(
             "gitlint",
@@ -139,6 +133,7 @@ def run() -> None:
             ["tools/commit-message-lint"],
             description="Checks commit messages for common formatting errors (config: .gitlint)",
         )
+
     linter_config.external_linter(
         "prettier",
         ["node_modules/.bin/prettier", "--check", "--log-level=warn"],
@@ -155,19 +150,11 @@ def run() -> None:
         check_arg=["--check"],
     )
 
-    linter_config.external_linter(
-        "format-mdx",
-        ["tools/format-mdx"],
-        ["mdx"],
-        description="Lint and format MDX files",
-    )
-
-    # Create a sequence from by_lang
     by_lang_sequence = list(by_lang)
 
     @linter_config.lint
     def check_custom_rules() -> int:
-        """Check trailing whitespace for specified files"""
+        """Check trailing whitespace for specified files."""
         trailing_whitespace_rule = RuleList(
             langs=by_lang_sequence,
             rules=[
@@ -183,7 +170,7 @@ def run() -> None:
 
     @linter_config.lint
     def custom_nonpy() -> int:
-        """Runs custom checks for non-python files (config: tools/lib/custom_check.py)"""
+        """Run custom checks for non-Python files."""
         failed = False
         for rule in non_py_rules:
             failed = failed or rule.check(by_lang, verbose=args.verbose)
