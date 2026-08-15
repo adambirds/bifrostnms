@@ -1,10 +1,106 @@
 {
   "version": "2.0.0",
   "tasks": [
-    { "label": "lint", "type": "shell", "command": "tools/lint", "group": "test", "problemMatcher": [] },
-    { "label": "test all", "type": "shell", "command": "tools/test-all", "group": "test", "problemMatcher": [] },
-    { "label": "backend", "type": "shell", "command": "cd backend && uvicorn bifrostnms.main:app --reload --host 0.0.0.0 --port 8000", "isBackground": true, "problemMatcher": [] },
-    { "label": "frontend", "type": "shell", "command": "pnpm --dir frontend dev --host 0.0.0.0", "isBackground": true, "problemMatcher": [] },
-    { "label": "agent", "type": "shell", "command": "cd agent && go run ./cmd/bifrost-agent", "problemMatcher": ["$go"] }
+    {
+      "label": "start: api",
+      "type": "shell",
+      "command": "PYTHONPATH=backend uvicorn bifrostnms.main:app --reload --host 0.0.0.0 --port 8000",
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "start: dashboard",
+      "type": "shell",
+      "command": "pnpm --dir frontend dev",
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "start: auth frontend",
+      "type": "shell",
+      "command": "pnpm --dir auth-frontend dev",
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "start: agent",
+      "type": "shell",
+      "command": "cd agent && go run ./cmd/bifrost-agent",
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
+      "problemMatcher": ["$go"]
+    },
+    {
+      "label": "start: all web",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "start: api",
+        "start: dashboard",
+        "start: auth frontend"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "start: everything",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "start: api",
+        "start: dashboard",
+        "start: auth frontend",
+        "start: agent"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "db: bootstrap",
+      "type": "shell",
+      "command": "tools/db-bootstrap",
+      "problemMatcher": []
+    },
+    {
+      "label": "db: migrate",
+      "type": "shell",
+      "command": "tools/db-migrate",
+      "problemMatcher": []
+    },
+    {
+      "label": "db: history",
+      "type": "shell",
+      "command": "tools/db-history",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "tools/lint",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "test all",
+      "type": "shell",
+      "command": "tools/test-all",
+      "group": "test",
+      "problemMatcher": []
+    }
   ]
 }
