@@ -1,22 +1,27 @@
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from bifrostnms.auth.webauthn import _b64, verify_authentication, verify_registration
+from bifrostnms.models import AuthenticationChallenge, User, WebAuthnCredential
 
 
 @pytest.mark.asyncio
-async def test_verify_registration_stores_credential_and_consumes_challenge():
-    user = SimpleNamespace(id=uuid4())
-    challenge = SimpleNamespace(
-        user_id=user.id,
-        metadata={"challenge": _b64(b"challenge")},
-        consumed_at=None,
-        save=AsyncMock(),
+async def test_verify_registration_stores_credential_and_consumes_challenge() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4()))
+    challenge = cast(
+        AuthenticationChallenge,
+        SimpleNamespace(
+            user=user,
+            metadata={"challenge": _b64(b"challenge")},
+            consumed_at=None,
+            save=AsyncMock(),
+        ),
     )
-    stored = SimpleNamespace(id=uuid4())
+    stored = cast(WebAuthnCredential, SimpleNamespace(id=uuid4()))
     verification = SimpleNamespace(
         credential_id=b"credential-id",
         credential_public_key=b"public-key",
@@ -41,6 +46,7 @@ async def test_verify_registration_stores_credential_and_consumes_challenge():
         )
 
     assert result is stored
+    assert create_mock.await_args is not None
     assert create_mock.await_args.kwargs["credential_id"] == _b64(b"credential-id")
     assert create_mock.await_args.kwargs["public_key"] == _b64(b"public-key")
     assert create_mock.await_args.kwargs["name"] == "Mac passkey"
@@ -50,9 +56,10 @@ async def test_verify_registration_stores_credential_and_consumes_challenge():
 
 
 @pytest.mark.asyncio
-async def test_verify_registration_rejects_challenge_for_another_user():
-    user = SimpleNamespace(id=uuid4())
-    challenge = SimpleNamespace(user_id=uuid4())
+async def test_verify_registration_rejects_challenge_for_another_user() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4()))
+    another_user = cast(User, SimpleNamespace(id=uuid4()))
+    challenge = cast(AuthenticationChallenge, SimpleNamespace(user=another_user))
 
     with patch(
         "bifrostnms.auth.webauthn._get_challenge",
@@ -63,21 +70,27 @@ async def test_verify_registration_rejects_challenge_for_another_user():
 
 
 @pytest.mark.asyncio
-async def test_verify_authentication_updates_counter_and_consumes_challenge():
-    user = SimpleNamespace(id=uuid4())
-    challenge = SimpleNamespace(
-        metadata={"challenge": _b64(b"challenge")},
-        consumed_at=None,
-        save=AsyncMock(),
+async def test_verify_authentication_updates_counter_and_consumes_challenge() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4()))
+    challenge = cast(
+        AuthenticationChallenge,
+        SimpleNamespace(
+            metadata={"challenge": _b64(b"challenge")},
+            consumed_at=None,
+            save=AsyncMock(),
+        ),
     )
-    stored = SimpleNamespace(
-        public_key=_b64(b"public-key"),
-        sign_count=4,
-        user=user,
-        last_used_at=None,
-        device_type="",
-        backed_up=False,
-        save=AsyncMock(),
+    stored = cast(
+        WebAuthnCredential,
+        SimpleNamespace(
+            public_key=_b64(b"public-key"),
+            sign_count=4,
+            user=user,
+            last_used_at=None,
+            device_type="",
+            backed_up=False,
+            save=AsyncMock(),
+        ),
     )
     queryset = MagicMock()
     queryset.select_related.return_value = queryset
