@@ -26,6 +26,9 @@ class User(TimestampedModel):
 
     memberships: fields.ReverseRelation[RealmMembership]
     sessions: fields.ReverseRelation[UserSession]
+    webauthn_credentials: fields.ReverseRelation[WebAuthnCredential]
+    two_factor_methods: fields.ReverseRelation[TwoFactorMethod]
+    recovery_codes: fields.ReverseRelation[RecoveryCode]
 
     @property
     def full_name(self) -> str:
@@ -80,6 +83,8 @@ class WebAuthnCredential(TimestampedModel):
     public_key = fields.TextField()
     sign_count = fields.BigIntField(default=0)
     name = fields.CharField(max_length=120, default="Passkey")
+    device_type = fields.CharField(max_length=64, default="")
+    backed_up = fields.BooleanField(default=False)
     transports = fields.JSONField(default=list)
     last_used_at = fields.DatetimeField(null=True)
 
@@ -91,8 +96,13 @@ class TwoFactorMethod(TimestampedModel):
     )
     method_type = fields.CharField(max_length=32, default="totp")
     secret_encrypted = fields.TextField()
+    name = fields.CharField(max_length=120, default="Authenticator app")
     is_enabled = fields.BooleanField(default=False)
     verified_at = fields.DatetimeField(null=True)
+    last_used_at = fields.DatetimeField(null=True)
+
+    class Meta:
+        unique_together = (("user", "method_type"),)
 
 
 class RecoveryCode(TimestampedModel):
@@ -109,7 +119,7 @@ class AuthenticationChallenge(TimestampedModel):
     user: fields.ForeignKeyNullableRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="authentication_challenges", null=True, on_delete=fields.CASCADE
     )
-    challenge_type = fields.CharField(max_length=32)
+    challenge_type = fields.CharField(max_length=32, index=True)
     challenge_hash = fields.CharField(max_length=64, unique=True, index=True)
     expires_at = fields.DatetimeField(index=True)
     consumed_at = fields.DatetimeField(null=True)
