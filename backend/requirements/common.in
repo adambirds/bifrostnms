@@ -4,5 +4,6 @@ pydantic-settings
 pwdlib[argon2]
 tortoise-orm[asyncpg]
 uvicorn[standard]
-webauthn
+cryptography
 pyotp
+webauthn>=3.0,<4
