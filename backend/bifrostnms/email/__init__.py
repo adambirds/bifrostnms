@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from bifrostnms.config import get_settings
 from bifrostnms.email.base import EmailBackend, EmailMessage
-from bifrostnms.email.microsoft_graph import (
-    MicrosoftGraphEmailBackend,
-    read_pem_credential,
-)
+from bifrostnms.email.microsoft_graph import MicrosoftGraphEmailBackend, read_pem_credential
 from bifrostnms.email.smtp import SMTPEmailBackend
 
 
