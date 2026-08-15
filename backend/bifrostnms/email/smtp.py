@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import smtplib
 import ssl
+from email.message import EmailMessage as StdlibEmailMessage
 from typing import Literal
 
 from bifrostnms.email.base import EmailMessage, build_mime_message
@@ -67,7 +68,11 @@ class SMTPEmailBackend:
                 client.ehlo()
             self._authenticate_and_send(client, email)
 
-    def _authenticate_and_send(self, client: smtplib.SMTP, email: object) -> None:
+    def _authenticate_and_send(
+        self,
+        client: smtplib.SMTP,
+        email: StdlibEmailMessage,
+    ) -> None:
         if self.authenticated:
             assert self.username is not None
             assert self.password is not None
