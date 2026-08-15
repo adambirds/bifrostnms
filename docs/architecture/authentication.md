@@ -2,6 +2,24 @@
 
 BifrostNMS has a dedicated authentication frontend (`auth-frontend/`) and a FastAPI authentication API under `/api/v1/auth`.
 
+The main dashboard deliberately does not own account-security UI. Authenticated users follow the **Account** link in the dashboard to the auth frontend, where identity and security settings are managed centrally.
+
+## Frontend routes
+
+The authentication frontend provides:
+
+- `/login` - password, passkey and 2FA/recovery-code sign-in flow;
+- `/signup` - account creation;
+- `/logout` - session termination;
+- `/account` - authenticated account overview;
+- `/security` - authenticated TOTP, recovery-code and passkey management.
+
+`/account` and `/security` perform a server-side `/api/v1/auth/me` check before rendering. If the shared session is missing or expired, the user is redirected to `/login` with the requested auth page preserved in `next=`.
+
+The dashboard links to `${NEXT_PUBLIC_AUTH_URL}/account`. The auth account shell links back to `NEXT_PUBLIC_DASHBOARD_URL`, so the two Next.js applications remain separate while sharing the same FastAPI/Redis browser session.
+
+When the auth frontend runs separately from the API in production, set `BIFROST_API_INTERNAL_URL` to the API URL reachable by the auth frontend's Next.js server process.
+
 ## Persistent vs ephemeral authentication data
 
 Persistent identity/security data is stored in PostgreSQL through Tortoise ORM:
@@ -82,9 +100,13 @@ TOTP secrets are generated with `pyotp`. The TOTP secret is encrypted before sto
 
 Password login for a user with TOTP enabled does not create a session immediately. It creates a short-lived 2FA challenge; only successful TOTP or recovery-code verification creates the Redis session.
 
+The `/security` page allows an authenticated user to configure an authenticator app, verify setup, receive recovery codes, inspect the number of unused recovery codes, and disable TOTP.
+
 ## WebAuthn/passkeys
 
 BifrostNMS uses the maintained `webauthn` Python package for WebAuthn ceremony generation and cryptographic verification. We own the API and data model, but do not hand-roll CBOR parsing, signature verification, RP ID checking, or authenticator validation.
+
+The `/security` page allows an authenticated user to register, name, view and remove passkeys. The login page supports passwordless passkey authentication.
 
 Important deployment settings:
 
@@ -105,4 +127,7 @@ Production WebAuthn requires a secure HTTPS origin.
 - `backend/bifrostnms/auth/webauthn.py` - WebAuthn ceremony logic
 - `backend/bifrostnms/models/auth.py` - persistent authentication models
 - `backend/bifrostnms/cli/create_superuser.py` - superuser administration CLI
-- `auth-frontend/` - Next.js authentication application
+- `auth-frontend/src/app/account/` - authenticated account overview
+- `auth-frontend/src/app/security/` - authenticated security settings route
+- `auth-frontend/src/components/SecuritySettings.tsx` - TOTP/passkey management UI
+- `auth-frontend/src/lib/server-auth.ts` - server-side account-route session guard
