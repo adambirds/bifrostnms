@@ -34,6 +34,23 @@ def slugify(value: str) -> str:
 
 async def serialize_user(user: User, session: SessionData | None = None) -> UserResponse:
     memberships = await RealmMembership.filter(user=user).select_related("realm").all()
+    realm_summaries = {
+        membership.realm.id: RealmSummary(
+            id=membership.realm.id,
+            name=membership.realm.name,
+            slug=membership.realm.slug,
+            role=membership.role,
+        )
+        for membership in memberships
+    }
+
+    if user.is_superuser:
+        for realm in await Realm.filter(is_active=True).order_by("name").all():
+            realm_summaries.setdefault(
+                realm.id,
+                RealmSummary(id=realm.id, name=realm.name, slug=realm.slug, role="superuser"),
+            )
+
     return UserResponse(
         id=user.id,
         email=user.email,
@@ -41,11 +58,9 @@ async def serialize_user(user: User, session: SessionData | None = None) -> User
         last_name=user.last_name,
         full_name=user.full_name,
         email_verified=user.email_verified,
+        is_superuser=user.is_superuser,
         active_realm_id=session.active_realm_id if session else None,
-        realms=[
-            RealmSummary(id=m.realm.id, name=m.realm.name, slug=m.realm.slug, role=m.role)
-            for m in memberships
-        ],
+        realms=list(realm_summaries.values()),
     )
 
 
@@ -105,8 +120,16 @@ async def me(request: Request) -> AuthResponse:
 @router.post("/realm/{realm_id}/activate", response_model=AuthResponse)
 async def activate_realm(realm_id: UUID, request: Request) -> AuthResponse:
     user, session = await get_session_user(request)
-    membership = await RealmMembership.filter(user=user, realm_id=realm_id).select_related("realm").first()
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
-    await set_active_realm(session, membership.realm.id)
+
+    if user.is_superuser:
+        realm = await Realm.filter(id=realm_id, is_active=True).first()
+        if not realm:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
+    else:
+        membership = await RealmMembership.filter(user=user, realm_id=realm_id).select_related("realm").first()
+        if not membership:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
+        realm = membership.realm
+
+    await set_active_realm(session, realm.id)
     return AuthResponse(user=await serialize_user(user, session))
