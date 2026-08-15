@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from tortoise import Tortoise
 
 from bifrostnms.api.auth import router as auth_router
+from bifrostnms.api.security import router as security_router
 from bifrostnms.api.two_factor import router as two_factor_router
 from bifrostnms.api.webauthn import router as webauthn_router
 from bifrostnms.config import get_settings
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(two_factor_router, prefix="/api/v1")
 app.include_router(webauthn_router, prefix="/api/v1")
+app.include_router(security_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["system"])
