@@ -27,7 +27,13 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-async def create_session(user: User, request: Request, response: Response) -> str:
+async def create_session(
+    user: User,
+    request: Request,
+    response: Response,
+    *,
+    auth_method: str = "password",
+) -> str:
     settings = get_settings()
     token = secrets.token_urlsafe(48)
     membership = await RealmMembership.filter(user=user).select_related("realm").first()
@@ -38,6 +44,7 @@ async def create_session(user: User, request: Request, response: Response) -> st
         active_realm=membership.realm if membership else None,
         token_hash=hash_token(token),
         expires_at=expires_at,
+        auth_method=auth_method,
         user_agent=request.headers.get("user-agent", ""),
         ip_address=request.client.host if request.client else None,
     )
