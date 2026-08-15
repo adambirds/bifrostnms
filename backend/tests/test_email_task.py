@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from bifrostnms.tasks.email import send_email
 
 
-def test_email_task_builds_provider_neutral_message():
+def test_email_task_builds_provider_neutral_message() -> None:
     backend = MagicMock()
 
     with patch("bifrostnms.tasks.email.get_email_backend", return_value=backend):
