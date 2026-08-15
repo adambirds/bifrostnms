@@ -120,7 +120,7 @@ jobs:
         run: git fetch origin main
 
       - name: Run backend tests
-        run: coverage run -m pytest backend -v
+        run: pytest backend -v
 
       - name: Generate coverage report
         run: coverage xml -o backend/coverage.xml
