@@ -142,7 +142,8 @@ def pick_sort_order() -> str | None:
     ans = inquirer.prompt(q)
     if not ans:
         return RET
-    return ans["order"]
+    order = ans.get("order")
+    return order if isinstance(order, str) else RET
 
 
 def ask_change_path(current_path: str) -> str | None:
@@ -156,7 +157,8 @@ def ask_change_path(current_path: str) -> str | None:
     ans = inquirer.prompt(q)
     if not ans:
         return None
-    return ans["path"]
+    path = ans.get("path")
+    return path if isinstance(path, str) else None
 
 
 def pick_rule(counts: Counter[str], first_msg: dict[str, str]) -> str | None:
@@ -195,7 +197,8 @@ def pick_rule(counts: Counter[str], first_msg: dict[str, str]) -> str | None:
     ans = inquirer.prompt(choices)
     if not ans:
         return RET
-    return ans["rule"]
+    rule = ans.get("rule")
+    return rule if isinstance(rule, str) else RET
 
 
 def pick_occurrence(issues: list[Issue]) -> Issue | str | None:
@@ -221,7 +224,8 @@ def pick_occurrence(issues: list[Issue]) -> Issue | str | None:
     ans = inquirer.prompt(questions)
     if not ans:
         return RET
-    return ans["occ"]
+    occurrence = ans.get("occ")
+    return occurrence if isinstance(occurrence, (Issue, str)) else RET
 
 
 def open_in_vscode(issue: Issue) -> None:
@@ -335,6 +339,9 @@ def show_rule_menu(rule_code: str, rule_issues: list[Issue], path: str) -> str:
             return RET
         action = ans["action"]
 
+        if not isinstance(action, str):
+            return RET
+
         if action in (RET, QUIT, RERUN):
             return action
 
@@ -368,6 +375,9 @@ def show_rule_menu(rule_code: str, rule_issues: list[Issue], path: str) -> str:
                 if not a2:
                     break
                 occ_action = a2["occ_action"]
+
+                if not isinstance(occ_action, str):
+                    break
 
                 if occ_action == RET:
                     break

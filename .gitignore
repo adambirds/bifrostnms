@@ -6,28 +6,54 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
 venv/
+.tox/
+.nox/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pyright/
+.hypothesis/
+.dmypy.json
+dmypy.json
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
 
-# Node
+# JavaScript / TypeScript
 node_modules/
 .pnpm-store/
-dist/
+.npm/
+.yarn/cache/
+.yarn/install-state.gz
+.turbo/
 .vite/
 .next/
+out/
+.vercel/
 .eslintcache
+.stylelintcache
 *.tsbuildinfo
 coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Go
 agent/bin/
 agent/coverage.out
+*.test
+*.prof
+coverage.out
 
 # Editors / OS
 .DS_Store

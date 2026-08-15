@@ -1,4 +1,5 @@
 import {requireUser} from '@/lib/auth'
+import Link from 'next/link'
 
 const authUrl = process.env.NEXT_PUBLIC_AUTH_URL ?? 'http://localhost:3001'
 
@@ -10,7 +11,7 @@ export default async function DashboardPage() {
     <div className="shell">
       <aside>
         <div className="brand">BifrostNMS</div>
-        <nav><a href="/">Overview</a><a href="#">Targets</a><a href="#">Agents</a><a href="#">Monitors</a><a href="#">Alerts</a><a href="#">Settings</a></nav>
+        <nav><Link href="/">Overview</Link><a href="#">Targets</a><a href="#">Agents</a><a href="#">Monitors</a><a href="#">Alerts</a><a href="#">Settings</a></nav>
       </aside>
       <main>
         <div className="top">
