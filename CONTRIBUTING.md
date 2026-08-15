@@ -27,8 +27,20 @@ Then choose **Dev Containers: Reopen in Container**. The container installs the 
 
 ## Branches and commits
 
-Create a focused branch from `main` and keep commits small and coherent. Commit
-messages are checked automatically with gitlint and must use this title format:
+Create a focused branch from `main`, keep commits small and coherent, and submit
+the change through a pull request. This is the default workflow for all changes.
+Large features, changes containing multiple features and work expected to need
+several follow-up commits must always use a dedicated branch and pull request;
+they must not be committed directly to `main`.
+
+While BifrostNMS is in early development, the repository owner may explicitly
+allow a small, single-purpose, low-risk change to be committed directly to
+`main`. This is a temporary exception rather than the normal contribution
+workflow and never applies to large or multi-feature changes. When in doubt, use
+a branch and pull request.
+
+Commit messages are checked automatically with gitlint and must use this title
+format:
 
 ```text
 <type>: <Imperative summary>.

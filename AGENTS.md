@@ -101,6 +101,18 @@ work staged without a commit. For a large feature, multiple requested changes or
 work that requires follow-up turns, do not create a premature catch-all commit;
 commit each complete logical milestone separately as the work progresses.
 
+Branch-and-pull-request workflow is the default for all changes. Large features,
+multi-feature changes and work expected to require several follow-up commits must
+always be developed on a dedicated branch and submitted through a pull request;
+do not commit that work directly to `main`. Create the branch before the first
+feature commit, keep its commits scoped to logical milestones and use the pull
+request for consolidated review and validation.
+
+During early development, the repository owner may explicitly allow a small,
+single-purpose, low-risk change to be committed directly to `main`. Treat this as
+an exception, not the default, and do not apply it to large or multi-feature work.
+If the intended workflow is unclear, use a branch and pull request.
+
 For Go, run `gofmt` and keep dependencies minimal. For Python, use modern typing and async APIs. For TypeScript, keep strict typing and avoid `any` unless unavoidable and documented.
 
 ## Documentation
