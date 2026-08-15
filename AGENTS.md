@@ -89,7 +89,17 @@ correct every reported violation. Do not bypass the commit-message rules.
 
 Read nearby code/tests/docs before editing. Keep changes scoped. Add tests for behaviour. Do not silently weaken lint/type/test rules. Do not commit secrets, credentials, local environment files or generated coverage output.
 
-Run `tools/lint` and `tools/test-all` before considering a change complete. If a check cannot run, state exactly why.
+The lint runner only discovers files that are tracked by Git. Before running
+`tools/lint`, stage all intended new files with `git add` so they are included;
+an untracked file receiving no lint output is not evidence that it passes. Review
+the staged scope with `git status`, then run `tools/lint` and `tools/test-all`
+before considering a change complete. If a check cannot run, state exactly why.
+
+When a cohesive requested task is fully implemented and validated, create a
+commit for it using the repository's commit-message rules. Do not leave completed
+work staged without a commit. For a large feature, multiple requested changes or
+work that requires follow-up turns, do not create a premature catch-all commit;
+commit each complete logical milestone separately as the work progresses.
 
 For Go, run `gofmt` and keep dependencies minimal. For Python, use modern typing and async APIs. For TypeScript, keep strict typing and avoid `any` unless unavoidable and documented.
 

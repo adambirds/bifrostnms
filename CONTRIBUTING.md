@@ -71,9 +71,15 @@ violation. Do not bypass the commit-message checks.
 Run:
 
 ```bash
+git add <new-files>
 tools/lint
 tools/test-all
 ```
+
+`tools/lint` discovers tracked files through Git. Stage newly created files
+before running it or they will not be checked. Review the staged changes with
+`git status` before continuing; staging for lint does not require committing the
+files immediately.
 
 Python should pass Ruff, mypy and pytest. Go should pass `gofmt`, `go vet` and `go test`. Frontend code should pass ESLint, Prettier, Stylelint and its tests once the frontend is bootstrapped.
 
