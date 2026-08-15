@@ -1,13 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -u
 
 FAILED_COMPONENTS=()
 
-echo "🧪 Running all BifrostNMS tests..."
+echo "🧪 Running all BifrostNMS tests and checks..."
 echo ""
 
 echo "📊 Backend (FastAPI)..."
-if pytest backend; then
+if tools/test-backend; then
 	echo "✅ Backend tests passed"
 else
 	echo "❌ Backend tests failed"
@@ -16,7 +16,7 @@ fi
 echo ""
 
 echo "🌐 Dashboard (Next.js)..."
-if pnpm --dir frontend typecheck && pnpm --dir frontend lint; then
+if tools/test-website; then
 	echo "✅ Dashboard checks passed"
 else
 	echo "❌ Dashboard checks failed"
@@ -25,7 +25,7 @@ fi
 echo ""
 
 echo "🔐 Auth frontend (Next.js)..."
-if pnpm --dir auth-frontend typecheck && pnpm --dir auth-frontend lint; then
+if tools/test-auth-frontend; then
 	echo "✅ Auth frontend checks passed"
 else
 	echo "❌ Auth frontend checks failed"
@@ -43,7 +43,7 @@ fi
 echo ""
 
 if [ ${#FAILED_COMPONENTS[@]} -eq 0 ]; then
-	echo "🎉 All tests passed!"
+	echo "🎉 All tests and checks passed!"
 	exit 0
 fi
 
