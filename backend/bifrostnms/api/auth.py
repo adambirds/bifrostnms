@@ -8,6 +8,7 @@ from bifrostnms.auth.security import (
     create_session,
     get_session_user,
     hash_password,
+    hash_token,
     normalize_email,
     verify_password,
 )
@@ -86,8 +87,6 @@ async def logout(request: Request, response: Response) -> None:
     settings = get_settings()
     token = request.cookies.get(settings.session_cookie_name)
     if token:
-        from bifrostnms.auth.security import hash_token
-
         await UserSession.filter(token_hash=hash_token(token)).delete()
     response.delete_cookie(settings.session_cookie_name, path="/", domain=settings.cookie_domain)
 
@@ -106,5 +105,5 @@ async def activate_realm(realm_id: UUID, request: Request) -> AuthResponse:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
     session.active_realm = membership.realm
     session.last_activity = datetime.now(UTC)
-    await session.save(update_fields=["active_realm_id", "last_activity"])
+    await session.save(update_fields=["active_realm", "last_activity"])
     return AuthResponse(user=await serialize_user(user, session))

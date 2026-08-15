@@ -1,15 +1,13 @@
 #!/bin/bash
-
-# Test all components
-echo "🧪 Running all tests..."
-echo ""
+set -u
 
 FAILED_COMPONENTS=()
 
-# Test Backend (Django)
-echo "📊 Backend (Django)..."
-cd backend || exit 1
-if DJANGO_SETTINGS_MODULE=techwiki.settings_test coverage run manage.py test -v 2; then
+echo "🧪 Running all BifrostNMS tests..."
+echo ""
+
+echo "📊 Backend (FastAPI)..."
+if pytest backend; then
 	echo "✅ Backend tests passed"
 else
 	echo "❌ Backend tests failed"
@@ -17,27 +15,37 @@ else
 fi
 echo ""
 
-cd .. || exit 1
-
-# Test Website (Next.js)
-echo "🌐 Website (Next.js)..."
-cd website || exit 1
-if pnpm test; then
-	echo "✅ Website tests passed"
+echo "🌐 Dashboard (Next.js)..."
+if pnpm --dir frontend typecheck && pnpm --dir frontend lint; then
+	echo "✅ Dashboard checks passed"
 else
-	echo "❌ Website tests failed"
-	FAILED_COMPONENTS+=("Website")
+	echo "❌ Dashboard checks failed"
+	FAILED_COMPONENTS+=("Dashboard")
 fi
 echo ""
 
-cd .. || exit 1
+echo "🔐 Auth frontend (Next.js)..."
+if pnpm --dir auth-frontend typecheck && pnpm --dir auth-frontend lint; then
+	echo "✅ Auth frontend checks passed"
+else
+	echo "❌ Auth frontend checks failed"
+	FAILED_COMPONENTS+=("Auth frontend")
+fi
+echo ""
 
-# Summary
-echo "📋 Test Summary:"
+echo "🛰️  Agent (Go)..."
+if (cd agent && go test ./... && go vet ./...); then
+	echo "✅ Agent tests passed"
+else
+	echo "❌ Agent tests failed"
+	FAILED_COMPONENTS+=("Agent")
+fi
+echo ""
+
 if [ ${#FAILED_COMPONENTS[@]} -eq 0 ]; then
 	echo "🎉 All tests passed!"
 	exit 0
-else
-	echo "❌ Failed components: ${FAILED_COMPONENTS[*]}"
-	exit 1
 fi
+
+echo "❌ Failed components: ${FAILED_COMPONENTS[*]}"
+exit 1
