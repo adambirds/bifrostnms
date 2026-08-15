@@ -4,74 +4,72 @@
 
 > See your network from everywhere.
 
-BifrostNMS is an open-source network monitoring platform inspired by the distributed monitoring model that made SmokePing so useful, rebuilt around a modern API, web interface, and lightweight remote probe agents.
+BifrostNMS is an open-source network monitoring platform inspired by the distributed monitoring model that made SmokePing so useful, rebuilt around a modern API, dedicated authentication application, dashboard, and lightweight Go agents.
 
-The project is designed around a central control plane and small agents deployed across different hosts, networks, regions, and providers. Agents run monitoring probes locally and report measurements back to the server so latency, packet loss, availability, DNS, HTTP and other network behaviour can be compared from multiple vantage points.
-
-## Goals
-
-- Lightweight enough to self-host on modest hardware.
-- Distributed monitoring from any number of remote agents.
-- Configuration through the web UI and API, with configuration-as-code support where useful.
-- Excellent historical latency and packet-loss visualisation.
-- Extensible probe system without coupling every probe to the core server.
-- First-class Docker and Dev Container development experience.
-- A useful open-source product first, with BifrostNMS Cloud planned as a hosted service.
-
-## Planned architecture
+## Architecture
 
 ```text
-                        +---------------------+
-                        |   BifrostNMS Web    |
-                        |   React / Vite      |
-                        +----------+----------+
-                                   |
-                                   v
-+----------------+       +---------+----------+       +----------------+
-| Remote Agent A | ----> | BifrostNMS Server | <---- | Remote Agent B |
-|       Go       |       | FastAPI + Tortoise|       |       Go       |
-+----------------+       +---------+----------+       +----------------+
-                                   |
-                          +--------+---------+
-                          | PostgreSQL/Redis |
-                          +------------------+
+Next.js 16 Auth UI (3001) ----+
+                              |
+Next.js 16 Dashboard (3000) --+--> FastAPI (8000) --> PostgreSQL / TimescaleDB
+                              |          |
+Go Agents --------------------+          +--> Redis sessions
 ```
 
-The initial monorepo is split into:
+The monorepo contains:
 
-- `backend/` — FastAPI control plane, API and persistence layer.
-- `frontend/` — React/Vite web application.
-- `agent/` — lightweight Go probe agent.
-- `deploy/` — deployment and container orchestration assets.
-- `docs/` — architecture, probe and operational documentation.
-- `tools/` — repository development tooling.
+- `backend/` — FastAPI control plane using Tortoise ORM.
+- `auth-frontend/` — separate Next.js 16 App Router authentication/security application.
+- `frontend/` — Next.js 16 App Router monitoring dashboard.
+- `agent/` — self-contained Go monitoring agent.
+- `deploy/` — deployment assets.
+- `docs/` — architecture and operational documentation.
+- `tools/` — shared development, linting and database tooling.
 
-The exact architecture will evolve while the first probes and data model are implemented. The intent is to keep the server and agents small rather than introduce infrastructure purely for its own sake.
+## Core principles
 
-## Probe direction
-
-The first useful milestone will focus on ICMP latency/packet loss, followed by probes such as DNS and HTTP/HTTPS. Where mature system utilities such as `fping`, `dig` or `curl` provide better behaviour than reimplementing a protocol, BifrostNMS can wrap them behind a consistent probe interface. Native implementations can be used where they provide a clear portability or operational benefit.
+- Agents should implement probes natively in Go. Requiring host utilities such as `fping`, `dig`, `curl`, or `traceroute` should be an exceptional case rather than normal operation.
+- Agents will retain configuration and unsynchronised observations locally in SQLite so monitoring continues through control-plane outages.
+- Realms are a first-class tenancy boundary from the start. Self-hosted installations may have multiple realms; BifrostNMS Cloud will use the same model at larger scale.
+- PostgreSQL/TimescaleDB stores persistent application and monitoring data. Redis stores browser sessions and other appropriate ephemeral state.
+- Authentication includes password login, TOTP two-factor authentication with recovery codes, and WebAuthn/passkeys from the beginning.
 
 ## Development
 
-The recommended development environment is VS Code Dev Containers. Clone the repository and choose **Dev Containers: Reopen in Container**.
+Use VS Code Dev Containers and choose **Dev Containers: Reopen in Container**.
 
-The development container provides Python, Node.js/pnpm, Go, PostgreSQL, Redis and the network utilities needed to develop probes.
+For the first database setup:
 
-See `CONTRIBUTING.md` for the development workflow and `AGENTS.md` for guidance for AI coding agents.
+```bash
+./tools/db-bootstrap
+```
+
+Start the applications in separate terminals:
+
+```bash
+uvicorn backend.bifrostnms.main:app --host 0.0.0.0 --port 8000 --reload
+pnpm --dir auth-frontend dev
+pnpm --dir frontend dev
+```
+
+Then visit `http://localhost:3001` to create/sign into an account and `http://localhost:3000` for the dashboard.
+
+Documentation:
+
+- `docs/development/local-development.md`
+- `docs/development/database-migrations.md`
+- `docs/architecture/authentication.md`
+- `CONTRIBUTING.md`
+- `AGENTS.md`
 
 ## Status
 
-BifrostNMS is at the beginning of development. APIs, storage formats and configuration are expected to change before the first stable release.
-
-## Contributing
-
-Contributions, ideas, bug reports and probe implementations are welcome. Please read `CONTRIBUTING.md` before opening a pull request.
+BifrostNMS is in early development. APIs and schemas may change before the first stable release.
 
 ## Sponsoring
 
-If BifrostNMS becomes useful to you or your organisation, see `SPONSORS.md` for ways to support continued development.
+See `SPONSORS.md` for ways to support development.
 
 ## License
 
-A project licence will be added before the first public release. Until then, the repository being publicly readable should not be interpreted as granting rights beyond those provided by GitHub's Terms of Service.
+A project licence will be added before the first public release. Until then, public visibility should not be interpreted as granting rights beyond GitHub's Terms of Service.
