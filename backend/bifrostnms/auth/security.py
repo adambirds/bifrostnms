@@ -12,7 +12,7 @@ from pwdlib import PasswordHash
 
 from bifrostnms.auth.redis import get_redis
 from bifrostnms.config import get_settings
-from bifrostnms.models import RealmMembership, User
+from bifrostnms.models import Realm, RealmMembership, User
 
 password_hash = PasswordHash.recommended()
 
@@ -73,6 +73,19 @@ def _session_key(token: str) -> str:
     return f"{settings.session_key_prefix}{hash_token(token)}"
 
 
+async def _initial_realm_id(user: User) -> UUID | None:
+    membership = await RealmMembership.filter(user=user).select_related("realm").first()
+    if membership:
+        return membership.realm.id
+
+    if user.is_superuser:
+        realm = await Realm.filter(is_active=True).order_by("created_at").first()
+        if realm:
+            return realm.id
+
+    return None
+
+
 async def create_session(
     user: User,
     request: Request,
@@ -83,11 +96,10 @@ async def create_session(
     settings = get_settings()
     token = secrets.token_urlsafe(48)
     redis_key = _session_key(token)
-    membership = await RealmMembership.filter(user=user).select_related("realm").first()
     now = datetime.now(UTC)
     session = SessionData(
         user_id=user.id,
-        active_realm_id=membership.realm.id if membership else None,
+        active_realm_id=await _initial_realm_id(user),
         auth_method=auth_method,
         created_at=now,
         last_activity=now,
