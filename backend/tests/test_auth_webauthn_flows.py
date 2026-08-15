@@ -12,13 +12,14 @@ from bifrostnms.models import AuthenticationChallenge, User, WebAuthnCredential
 @pytest.mark.asyncio
 async def test_verify_registration_stores_credential_and_consumes_challenge() -> None:
     user = cast(User, SimpleNamespace(id=uuid4()))
+    challenge_save = AsyncMock()
     challenge = cast(
         AuthenticationChallenge,
         SimpleNamespace(
             user=user,
             metadata={"challenge": _b64(b"challenge")},
             consumed_at=None,
-            save=AsyncMock(),
+            save=challenge_save,
         ),
     )
     stored = cast(WebAuthnCredential, SimpleNamespace(id=uuid4()))
@@ -52,7 +53,7 @@ async def test_verify_registration_stores_credential_and_consumes_challenge() ->
     assert create_mock.await_args.kwargs["name"] == "Mac passkey"
     assert create_mock.await_args.kwargs["transports"] == ["internal"]
     assert challenge.consumed_at is not None
-    challenge.save.assert_awaited_once_with(update_fields=["consumed_at"])
+    challenge_save.assert_awaited_once_with(update_fields=["consumed_at"])
 
 
 @pytest.mark.asyncio
@@ -61,25 +62,29 @@ async def test_verify_registration_rejects_challenge_for_another_user() -> None:
     another_user = cast(User, SimpleNamespace(id=uuid4()))
     challenge = cast(AuthenticationChallenge, SimpleNamespace(user=another_user))
 
-    with patch(
-        "bifrostnms.auth.webauthn._get_challenge",
-        new=AsyncMock(return_value=challenge),
+    with (
+        patch(
+            "bifrostnms.auth.webauthn._get_challenge",
+            new=AsyncMock(return_value=challenge),
+        ),
+        pytest.raises(ValueError, match="does not belong to this user"),
     ):
-        with pytest.raises(ValueError, match="does not belong to this user"):
-            await verify_registration(user, "challenge-id", {}, "Passkey")
+        await verify_registration(user, "challenge-id", {}, "Passkey")
 
 
 @pytest.mark.asyncio
 async def test_verify_authentication_updates_counter_and_consumes_challenge() -> None:
     user = cast(User, SimpleNamespace(id=uuid4()))
+    challenge_save = AsyncMock()
     challenge = cast(
         AuthenticationChallenge,
         SimpleNamespace(
             metadata={"challenge": _b64(b"challenge")},
             consumed_at=None,
-            save=AsyncMock(),
+            save=challenge_save,
         ),
     )
+    stored_save = AsyncMock()
     stored = cast(
         WebAuthnCredential,
         SimpleNamespace(
@@ -89,7 +94,7 @@ async def test_verify_authentication_updates_counter_and_consumes_challenge() ->
             last_used_at=None,
             device_type="",
             backed_up=False,
-            save=AsyncMock(),
+            save=stored_save,
         ),
     )
     queryset = MagicMock()
@@ -113,6 +118,6 @@ async def test_verify_authentication_updates_counter_and_consumes_challenge() ->
     assert stored.last_used_at is not None
     assert stored.device_type == "multi_device"
     assert stored.backed_up is True
-    stored.save.assert_awaited_once()
+    stored_save.assert_awaited_once()
     assert challenge.consumed_at is not None
-    challenge.save.assert_awaited_once_with(update_fields=["consumed_at"])
+    challenge_save.assert_awaited_once_with(update_fields=["consumed_at"])
