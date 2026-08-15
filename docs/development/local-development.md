@@ -45,3 +45,18 @@ Never use the development encryption key in production.
 Create an account or sign in at `http://localhost:3001`. The auth app and dashboard share the same host-scoped `HttpOnly` session cookie even though they run on different ports.
 
 Passkeys work on localhost because browsers treat localhost as a secure development context. Production passkeys require HTTPS and correct RP ID/origin configuration.
+
+## GitHub CLI authentication
+
+The Dev Container mounts `/root/.config/gh` from the named Docker volume
+`bifrostnms-github-cli-config`. After authenticating once with:
+
+```bash
+gh auth login
+```
+
+the GitHub CLI credentials survive normal Dev Container rebuilds. They remain
+outside the repository and are not included in the container image.
+
+Removing the named volume, deleting all project Dev Container volumes or running
+`gh auth logout` removes the persisted authentication and requires a new login.
