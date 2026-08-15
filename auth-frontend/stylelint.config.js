@@ -1,5 +1,5 @@
 /** @type {import('stylelint').Config} */
-export default {
+const config = {
   extends: ["stylelint-config-standard"],
   rules: {
     "at-rule-no-unknown": [
@@ -22,9 +22,11 @@ export default {
     ],
     "custom-property-pattern": null,
     "import-notation": null,
-    "function-no-unknown": [true, { ignoreFunctions: ["theme"] }],
+    "function-no-unknown": [true, {ignoreFunctions: ["theme"]}],
     "selector-class-pattern": null,
     "declaration-block-no-redundant-longhand-properties": null,
   },
   ignoreFiles: [".next/**", "dist/**", "coverage/**", "node_modules/**"],
 };
+
+export default config;
