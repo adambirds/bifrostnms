@@ -4,16 +4,96 @@ pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 
-[tool.ruff]
-target-version = "py312"
-line-length = 100
-src = ["backend"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
-
 [tool.mypy]
 python_version = "3.12"
 strict = true
 mypy_path = "backend"
-packages = ["bifrostnms"]
+exclude = "backend/bifrostnms/migrations/.*\\.py"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["backend"]
+exclude = ["backend/bifrostnms/migrations"]
+
+[tool.ruff.lint]
+select = [
+  "ANN",
+  "ASYNC",
+  "B",
+  "C4",
+  "COM",
+  "DTZ",
+  "E",
+  "EXE",
+  "F",
+  "FLY",
+  "G",
+  "I",
+  "LOG",
+  "N",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PYI",
+  "Q",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "T10",
+  "TC",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  "ANN401",
+  "B007",
+  "B904",
+  "COM812",
+  "E402",
+  "E501",
+  "LOG015",
+  "N802",
+  "N806",
+  "PERF203",
+  "PLC0415",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+  "PLR2004",
+  "PLW0603",
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  "RUF012",
+  "S101",
+  "S105",
+  "S106",
+  "S107",
+  "S108",
+  "S110",
+  "S113",
+  "S310",
+  "S311",
+  "S324",
+  "S603",
+  "S606",
+  "S607",
+  "SIM102",
+  "SIM103",
+  "SIM108",
+  "SIM114",
+  "SIM401",
+  "TC001",
+  "TC002",
+  "TC003",
+  "TC006",
+]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
