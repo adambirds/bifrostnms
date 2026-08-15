@@ -9,7 +9,10 @@ celery_app = Celery(
     "bifrostnms",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["bifrostnms.tasks.system"],
+    include=[
+        "bifrostnms.tasks.system",
+        "bifrostnms.tasks.email",
+    ],
 )
 
 celery_app.conf.update(
