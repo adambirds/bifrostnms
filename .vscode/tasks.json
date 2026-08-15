@@ -87,6 +87,12 @@
       "problemMatcher": []
     },
     {
+      "label": "email: send test",
+      "type": "shell",
+      "command": "tools/send-test-email '${input:testEmailRecipient}'",
+      "problemMatcher": []
+    },
+    {
       "label": "db: bootstrap",
       "type": "shell",
       "command": "tools/db-bootstrap",
@@ -123,6 +129,13 @@
       "command": "tools/test-all",
       "group": "test",
       "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "testEmailRecipient",
+      "type": "promptString",
+      "description": "Recipient for the BifrostNMS test email"
     }
   ]
 }
