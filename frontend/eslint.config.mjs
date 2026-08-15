@@ -7,6 +7,7 @@ export default defineConfig([
   ...nextTypeScript,
   globalIgnores([
     ".next/**",
+    ".eslintcache",
     "out/**",
     "build/**",
     "dist/**",
