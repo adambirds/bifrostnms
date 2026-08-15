@@ -1,13 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import {useSearchParams} from 'next/navigation'
 import {FormEvent, useState} from 'react'
 import AuthCard from '@/components/AuthCard'
 import {authRequest, dashboardUrl} from '@/lib/api'
 
 export default function LoginPage() {
-  const params = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await authRequest('/auth/login', {method: 'POST', body: JSON.stringify({email, password})})
-      const next = params.get('next')
+      const next = new URLSearchParams(window.location.search).get('next')
       window.location.href = next?.startsWith('/') ? `${dashboardUrl}${next}` : dashboardUrl
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in')
