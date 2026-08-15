@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from tortoise import fields
 from tortoise.models import Model
@@ -68,7 +69,7 @@ class WebAuthnCredential(TimestampedModel):
     name = fields.CharField(max_length=120, default="Passkey")
     device_type = fields.CharField(max_length=64, default="")
     backed_up = fields.BooleanField(default=False)
-    transports = fields.JSONField(default=list)
+    transports = fields.JSONField[list[str]](default=list)
     last_used_at = fields.DatetimeField(null=True)
 
 
@@ -106,4 +107,4 @@ class AuthenticationChallenge(TimestampedModel):
     challenge_hash = fields.CharField(max_length=64, unique=True, index=True)
     expires_at = fields.DatetimeField(index=True)
     consumed_at = fields.DatetimeField(null=True)
-    metadata = fields.JSONField(default=dict)
+    metadata = fields.JSONField[dict[str, Any]](default=dict)
