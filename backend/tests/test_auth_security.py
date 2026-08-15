@@ -23,7 +23,7 @@ def test_password_hash_round_trip() -> None:
 
 
 def test_hash_token_is_deterministic_sha256() -> None:
-    assert hash_token("token") == "3c469e9d6c5875d37a43f3535f567666c7e0137a68e21193c044b7c08acec5f"
+    assert hash_token("token") == "3c469e9d6c5875d37a43f353d4f88e61fcf812c66eee3457465a40b0da4153e0"
 
 
 def test_session_data_json_round_trip() -> None:
