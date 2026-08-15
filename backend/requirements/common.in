@@ -1,4 +1,8 @@
 fastapi
+pydantic[email]
 pydantic-settings
+pwdlib[argon2]
 tortoise-orm[asyncpg]
 uvicorn[standard]
+webauthn
+pyotp
