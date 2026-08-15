@@ -31,12 +31,14 @@ async def test_require_superuser_rejects_normal_user() -> None:
     session = cast(SessionData, object())
     request = cast(Request, object())
 
-    with patch(
-        "bifrostnms.auth.permissions.get_session_user",
-        new=AsyncMock(return_value=(user, session)),
+    with (
+        patch(
+            "bifrostnms.auth.permissions.get_session_user",
+            new=AsyncMock(return_value=(user, session)),
+        ),
+        pytest.raises(HTTPException) as exc,
     ):
-        with pytest.raises(HTTPException) as exc:
-            await require_superuser(request)
+        await require_superuser(request)
 
     assert exc.value.status_code == 403
     assert exc.value.detail == "Installation superuser access required"
