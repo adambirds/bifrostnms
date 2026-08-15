@@ -40,7 +40,22 @@ export default function SecuritySettings() {
   }
 
   useEffect(() => {
-    refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load security settings'))
+    let cancelled = false
+
+    authRequest<SecuritySummary>('/auth/security').then(
+      data => {
+        if (!cancelled) setSummary(data)
+      },
+      err => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unable to load security settings')
+        }
+      },
+    )
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function beginTotp() {
