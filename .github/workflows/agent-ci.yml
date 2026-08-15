@@ -1,0 +1,156 @@
+name: BifrostNMS Agent CI (Monorepo)
+
+on:
+    push:
+        branches: ["main"]
+        tags: ["*"]
+        paths:
+            - "agent/**"
+            - "Dockerfile.agent"
+            - "tools/**"
+            - ".github/workflows/agent-ci.yml"
+            - "README.md"
+    pull_request:
+        paths:
+            - "agent/**"
+            - "Dockerfile.agent"
+            - "tools/**"
+            - ".github/workflows/agent-ci.yml"
+            - "README.md"
+    workflow_dispatch:
+
+concurrency:
+    group: agent-ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test-and-lint:
+        name: Run Go Tests and Linters
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: agent
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-go@v5
+              with:
+                  go-version: "1.24.x"
+                  cache: true
+                  cache-dependency-path: agent/go.mod
+
+            - name: Verify formatting
+              run: test -z "$(gofmt -l .)"
+
+            - name: Run go vet
+              run: go vet ./...
+
+            - name: Run tests with race detector and coverage
+              run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+            - name: Upload coverage to Codecov
+              if: ${{ github.event_name == 'push' }}
+              uses: codecov/codecov-action@v5
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: ./agent/coverage.out
+                  flags: agent,go
+                  name: Agent Coverage
+                  fail_ci_if_error: false
+                  verbose: true
+
+    trivy-fs-scan:
+        name: Trivy FS Scan (Agent)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Run Trivy FS Scan
+              uses: aquasecurity/trivy-action@v0.36.0
+              with:
+                  scan-type: fs
+                  severity: HIGH,CRITICAL
+                  output: trivy-fs-scan.txt
+              env:
+                  TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+                  TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: trivy-fs-scan-agent
+                  path: trivy-fs-scan.txt
+
+    build-binaries:
+        name: Build Agent Binaries
+        runs-on: ubuntu-latest
+        needs: test-and-lint
+        strategy:
+            matrix:
+                include:
+                    - goos: linux
+                      goarch: amd64
+                    - goos: linux
+                      goarch: arm64
+                    - goos: darwin
+                      goarch: amd64
+                    - goos: darwin
+                      goarch: arm64
+                    - goos: windows
+                      goarch: amd64
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-go@v5
+              with:
+                  go-version: "1.24.x"
+                  cache: true
+                  cache-dependency-path: agent/go.mod
+
+            - name: Build binary
+              working-directory: agent
+              env:
+                  GOOS: ${{ matrix.goos }}
+                  GOARCH: ${{ matrix.goarch }}
+                  CGO_ENABLED: "0"
+              run: |
+                  suffix=""
+                  if [ "$GOOS" = "windows" ]; then suffix=".exe"; fi
+                  mkdir -p ../dist
+                  go build -trimpath -ldflags="-s -w" -o "../dist/bifrost-agent-${GOOS}-${GOARCH}${suffix}" ./cmd/bifrost-agent
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: bifrost-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+                  path: dist/bifrost-agent-*
+
+    build-image:
+        name: Build Agent Docker Image
+        runs-on: ubuntu-latest
+        needs: [test-and-lint, trivy-fs-scan]
+        steps:
+            - uses: actions/checkout@v4
+            - name: Build Docker image
+              run: docker build -f Dockerfile.agent -t bifrostnms-agent:ci .
+
+    trivy-image-scan:
+        name: Trivy Image Scan (Agent)
+        runs-on: ubuntu-latest
+        needs: build-image
+        steps:
+            - uses: actions/checkout@v4
+            - name: Build Docker image
+              run: docker build -f Dockerfile.agent -t bifrostnms-agent:ci .
+            - name: Run Trivy image scan
+              uses: aquasecurity/trivy-action@v0.36.0
+              with:
+                  scan-type: image
+                  image-ref: bifrostnms-agent:ci
+                  severity: HIGH,CRITICAL
+                  output: trivy-image-scan.txt
+              env:
+                  TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+                  TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: trivy-image-scan-agent
+                  path: trivy-image-scan.txt
