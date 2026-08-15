@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Test website (Next.js)
-echo "🧪 Testing website..."
-cd website || exit 1
-if ! pnpm test; then
-	echo "❌ Website tests failed"
-	exit 1
-fi
+cd "$(git rev-parse --show-toplevel)"
+
+echo "🧪 Checking BifrostNMS dashboard..."
+pnpm --dir frontend typecheck
+pnpm --dir frontend lint
+pnpm --dir frontend build
