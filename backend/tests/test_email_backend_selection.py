@@ -65,6 +65,8 @@ def test_selects_microsoft_graph_backend() -> None:
 def test_unknown_email_backend_is_rejected() -> None:
     settings = SimpleNamespace(email_backend="carrier_pigeon")
 
-    with patch("bifrostnms.email.get_settings", return_value=settings):
-        with pytest.raises(ValueError, match="Unsupported email backend"):
-            get_email_backend()
+    with (
+        patch("bifrostnms.email.get_settings", return_value=settings),
+        pytest.raises(ValueError, match="Unsupported email backend"),
+    ):
+        get_email_backend()
