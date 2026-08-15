@@ -11,7 +11,6 @@ from cryptography.fernet import Fernet
 from bifrostnms.config import get_settings
 from bifrostnms.models import AuthenticationChallenge, RecoveryCode, TwoFactorMethod, User
 
-
 CHALLENGE_TTL_MINUTES = 5
 RECOVERY_CODE_COUNT = 10
 RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -37,9 +36,7 @@ def hash_recovery_code(code: str) -> str:
 
 
 def generate_recovery_code() -> str:
-    return "-".join(
-        "".join(secrets.choice(RECOVERY_ALPHABET) for _ in range(4)) for _ in range(3)
-    )
+    return "-".join("".join(secrets.choice(RECOVERY_ALPHABET) for _ in range(4)) for _ in range(3))
 
 
 async def create_totp_setup(user: User) -> tuple[TwoFactorMethod, str, str]:
@@ -91,9 +88,7 @@ async def verify_two_factor(user: User, code: str, recovery: bool = False) -> bo
         await recovery_code.save(update_fields=["used_at"])
         return True
 
-    method = await TwoFactorMethod.filter(
-        user=user, method_type="totp", is_enabled=True
-    ).first()
+    method = await TwoFactorMethod.filter(user=user, method_type="totp", is_enabled=True).first()
     if not method:
         return False
     secret = decrypt_secret(method.secret_encrypted)
@@ -120,11 +115,15 @@ async def create_login_challenge(user: User) -> str:
 
 
 async def consume_login_challenge(token: str) -> User | None:
-    challenge = await AuthenticationChallenge.filter(
-        challenge_type="two_factor_login",
-        challenge_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
-        consumed_at=None,
-    ).select_related("user").first()
+    challenge = (
+        await AuthenticationChallenge.filter(
+            challenge_type="two_factor_login",
+            challenge_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+            consumed_at=None,
+        )
+        .select_related("user")
+        .first()
+    )
     if not challenge or challenge.expires_at <= datetime.now(UTC) or not challenge.user:
         return None
     challenge.consumed_at = datetime.now(UTC)

@@ -6,7 +6,11 @@
       "type": "shell",
       "command": "PYTHONPATH=backend uvicorn bifrostnms.main:app --reload --host 0.0.0.0 --port 8000",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": []
     },
     {
@@ -14,7 +18,11 @@
       "type": "shell",
       "command": "pnpm --dir frontend dev",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": []
     },
     {
@@ -22,7 +30,11 @@
       "type": "shell",
       "command": "pnpm --dir auth-frontend dev",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": []
     },
     {
@@ -30,7 +42,11 @@
       "type": "shell",
       "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app worker --loglevel=INFO --queues=default,email,notifications",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": []
     },
     {
@@ -38,7 +54,11 @@
       "type": "shell",
       "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app beat --loglevel=INFO",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": []
     },
     {
@@ -46,7 +66,11 @@
       "type": "shell",
       "command": "cd agent && go run ./cmd/bifrost-agent",
       "isBackground": true,
-      "presentation": {"panel": "dedicated", "reveal": "always", "group": "bifrostnms"},
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
       "problemMatcher": ["$go"]
     },
     {

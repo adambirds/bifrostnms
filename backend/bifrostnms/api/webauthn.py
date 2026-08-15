@@ -2,9 +2,19 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from bifrostnms.api.auth import serialize_user
 from bifrostnms.auth.security import create_session, get_session_user
-from bifrostnms.auth.webauthn import authentication_options, registration_options, verify_authentication, verify_registration
+from bifrostnms.auth.webauthn import (
+    authentication_options,
+    registration_options,
+    verify_authentication,
+    verify_registration,
+)
 from bifrostnms.models import WebAuthnCredential
-from bifrostnms.schemas.auth import AuthResponse, WebAuthnAuthenticationVerifyRequest, WebAuthnOptionsResponse, WebAuthnRegistrationVerifyRequest
+from bifrostnms.schemas.auth import (
+    AuthResponse,
+    WebAuthnAuthenticationVerifyRequest,
+    WebAuthnOptionsResponse,
+    WebAuthnRegistrationVerifyRequest,
+)
 
 router = APIRouter(prefix="/auth/webauthn", tags=["authentication"])
 
@@ -16,10 +26,14 @@ async def register_options(request: Request) -> WebAuthnOptionsResponse:
 
 
 @router.post("/register/verify", status_code=status.HTTP_201_CREATED)
-async def register_verify(payload: WebAuthnRegistrationVerifyRequest, request: Request) -> dict[str, str]:
+async def register_verify(
+    payload: WebAuthnRegistrationVerifyRequest, request: Request
+) -> dict[str, str]:
     user, _ = await get_session_user(request)
     try:
-        credential = await verify_registration(user, str(payload.challenge_id), payload.credential, payload.name)
+        credential = await verify_registration(
+            user, str(payload.challenge_id), payload.credential, payload.name
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return {"id": str(credential.id), "name": credential.name}
@@ -31,7 +45,9 @@ async def authenticate_options() -> WebAuthnOptionsResponse:
 
 
 @router.post("/authenticate/verify", response_model=AuthResponse)
-async def authenticate_verify(payload: WebAuthnAuthenticationVerifyRequest, request: Request, response: Response) -> AuthResponse:
+async def authenticate_verify(
+    payload: WebAuthnAuthenticationVerifyRequest, request: Request, response: Response
+) -> AuthResponse:
     try:
         user = await verify_authentication(str(payload.challenge_id), payload.credential)
     except ValueError as exc:

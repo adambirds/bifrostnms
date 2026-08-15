@@ -68,7 +68,9 @@ async def serialize_user(user: User, session: SessionData | None = None) -> User
 async def signup(payload: SignupRequest, request: Request, response: Response) -> AuthResponse:
     email = normalize_email(str(payload.email))
     if await User.filter(email=email).exists():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account already exists for that email")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="An account already exists for that email"
+        )
 
     user = await User.create(
         email=email,
@@ -95,12 +97,16 @@ async def signup(payload: SignupRequest, request: Request, response: Response) -
 async def login(payload: LoginRequest, request: Request, response: Response) -> LoginResponse:
     user = await User.filter(email=normalize_email(str(payload.email))).first()
     if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+        )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
     if await user_has_two_factor(user):
-        return LoginResponse(requires_two_factor=True, challenge_token=await create_login_challenge(user))
+        return LoginResponse(
+            requires_two_factor=True, challenge_token=await create_login_challenge(user)
+        )
 
     session = await create_session(user, request, response, auth_method="password")
     return LoginResponse(user=await serialize_user(user, session))
@@ -126,7 +132,11 @@ async def activate_realm(realm_id: UUID, request: Request) -> AuthResponse:
         if not realm:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
     else:
-        membership = await RealmMembership.filter(user=user, realm_id=realm_id).select_related("realm").first()
+        membership = (
+            await RealmMembership.filter(user=user, realm_id=realm_id)
+            .select_related("realm")
+            .first()
+        )
         if not membership:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Realm not found")
         realm = membership.realm

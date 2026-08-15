@@ -29,4 +29,7 @@ def test_generated_recovery_code_format_and_uniqueness():
 
     assert len(codes) == RECOVERY_CODE_COUNT
     assert all(re.fullmatch(r"[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}", code) for code in codes)
-    assert all("0" not in code and "1" not in code and "I" not in code and "O" not in code for code in codes)
+    assert all(
+        "0" not in code and "1" not in code and "I" not in code and "O" not in code
+        for code in codes
+    )

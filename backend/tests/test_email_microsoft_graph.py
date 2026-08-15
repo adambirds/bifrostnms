@@ -31,7 +31,10 @@ def make_backend(**overrides):
 
 def test_reads_base64_pem_credential():
     encoded = base64.b64encode(CERTIFICATE.encode()).decode()
-    assert read_pem_credential(base64_value=encoded, path_value=None, label="certificate") == CERTIFICATE
+    assert (
+        read_pem_credential(base64_value=encoded, path_value=None, label="certificate")
+        == CERTIFICATE
+    )
 
 
 def test_rejects_missing_credentials():

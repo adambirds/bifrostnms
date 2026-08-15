@@ -8,7 +8,9 @@ def test_celery_queues_and_routes_are_configured():
     assert {"default", "email", "notifications"}.issubset(queues)
     assert celery_app.conf.task_default_queue == "default"
     assert celery_app.conf.task_routes["bifrostnms.tasks.email.*"]["queue"] == "email"
-    assert celery_app.conf.task_routes["bifrostnms.tasks.notifications.*"]["queue"] == "notifications"
+    assert (
+        celery_app.conf.task_routes["bifrostnms.tasks.notifications.*"]["queue"] == "notifications"
+    )
 
 
 def test_celery_reliability_defaults():

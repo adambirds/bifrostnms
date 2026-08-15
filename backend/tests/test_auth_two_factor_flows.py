@@ -42,7 +42,9 @@ async def test_recovery_code_is_single_use():
     queryset.first = AsyncMock(return_value=recovery)
     user = SimpleNamespace()
 
-    with patch("bifrostnms.auth.two_factor.RecoveryCode.filter", return_value=queryset) as filter_mock:
+    with patch(
+        "bifrostnms.auth.two_factor.RecoveryCode.filter", return_value=queryset
+    ) as filter_mock:
         valid = await verify_two_factor(user, "ABCD-EFGH-JKLM", recovery=True)
 
     assert valid is True

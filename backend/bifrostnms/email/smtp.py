@@ -26,7 +26,9 @@ class SMTPEmailBackend:
         password: str | None = None,
     ) -> None:
         if bool(username) != bool(password):
-            raise ValueError("SMTP username and password must either both be set or both be omitted")
+            raise ValueError(
+                "SMTP username and password must either both be set or both be omitted"
+            )
         if security not in {"none", "starttls", "ssl"}:
             raise ValueError(f"Unsupported SMTP security mode: {security}")
 

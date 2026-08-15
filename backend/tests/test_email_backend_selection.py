@@ -48,7 +48,10 @@ def test_selects_microsoft_graph_backend():
         patch("bifrostnms.email.get_settings", return_value=settings),
         patch(
             "bifrostnms.email.read_pem_credential",
-            side_effect=["-----BEGIN PRIVATE KEY-----\nkey\n", "-----BEGIN CERTIFICATE-----\ncert\n"],
+            side_effect=[
+                "-----BEGIN PRIVATE KEY-----\nkey\n",
+                "-----BEGIN CERTIFICATE-----\ncert\n",
+            ],
         ),
     ):
         backend = get_email_backend()
