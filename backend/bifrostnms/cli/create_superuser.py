@@ -12,6 +12,8 @@ from bifrostnms.auth.security import hash_password, normalize_email
 from bifrostnms.database import TORTOISE_ORM
 from bifrostnms.models import User
 
+MIN_PASSWORD_LENGTH = 12
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -37,15 +39,23 @@ def _prompt(value: str | None, label: str) -> str:
             return entered
 
 
+def _validate_password(password: str) -> str:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
+    return password
+
+
 def _read_password() -> str:
     env_password = os.getenv("BIFROSTNMS_SUPERUSER_PASSWORD")
     if env_password:
-        return env_password
+        return _validate_password(env_password)
 
     while True:
         password = getpass.getpass("Password: ")
-        if len(password) < 12:
-            print("Password must be at least 12 characters.", file=sys.stderr)
+        try:
+            _validate_password(password)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
             continue
         confirmation = getpass.getpass("Password (again): ")
         if password != confirmation:
