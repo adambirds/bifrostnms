@@ -1,6 +1,6 @@
 # Email delivery
 
-BifrostNMS sends application email asynchronously through Celery. The default transport is SMTP and supports both authenticated and unauthenticated SMTP servers.
+BifrostNMS sends application email asynchronously through Celery. The email layer is provider-neutral so application code does not need to know whether delivery uses SMTP or Microsoft Graph.
 
 ## Architecture
 
@@ -15,73 +15,134 @@ Redis DB 1 (Celery broker)
 Celery email queue
         |
         v
-SMTPEmailBackend
-        |
-        v
-SMTP server
+get_email_backend()
+       / \
+      /   \
+ SMTP       Microsoft Graph
 ```
 
-Email tasks are routed to the `email` Celery queue. The worker started by the development task listens to `default,email,notifications`.
-
-## SMTP authentication
-
-Authentication is optional.
-
-For an unauthenticated relay, leave both credentials unset:
+Select the provider with:
 
 ```env
+BIFROSTNMS_EMAIL_BACKEND=smtp
+```
+
+or:
+
+```env
+BIFROSTNMS_EMAIL_BACKEND=microsoft_graph
+```
+
+The Celery task and all callers remain unchanged when the provider changes.
+
+## SMTP
+
+SMTP supports both authenticated and unauthenticated servers.
+
+For an unauthenticated relay:
+
+```env
+BIFROSTNMS_EMAIL_BACKEND=smtp
 BIFROSTNMS_SMTP_HOST=mail.internal.example
 BIFROSTNMS_SMTP_PORT=25
 BIFROSTNMS_SMTP_SECURITY=none
 # BIFROSTNMS_SMTP_USERNAME=
 # BIFROSTNMS_SMTP_PASSWORD=
+BIFROSTNMS_SMTP_FROM_EMAIL=bifrostnms@example.com
+BIFROSTNMS_SMTP_FROM_NAME=BifrostNMS
 ```
 
-For authenticated SMTP, set both values:
+For authenticated SMTP:
 
 ```env
+BIFROSTNMS_EMAIL_BACKEND=smtp
 BIFROSTNMS_SMTP_HOST=smtp.example.com
 BIFROSTNMS_SMTP_PORT=587
 BIFROSTNMS_SMTP_SECURITY=starttls
 BIFROSTNMS_SMTP_USERNAME=bifrostnms@example.com
 BIFROSTNMS_SMTP_PASSWORD=replace-me
-```
-
-If only one of username/password is configured, the SMTP backend raises a configuration error rather than silently attempting unauthenticated delivery.
-
-## Transport security
-
-`BIFROSTNMS_SMTP_SECURITY` accepts:
-
-- `none` — plain SMTP, usually port 25. This can still be appropriate for a trusted local relay inside a private network.
-- `starttls` — connect using SMTP and upgrade the connection with STARTTLS, usually port 587.
-- `ssl` — implicit TLS from connection establishment, usually port 465.
-
-TLS certificate validation uses Python's default trusted certificate store.
-
-## Configuration
-
-```env
-BIFROSTNMS_SMTP_HOST=localhost
-BIFROSTNMS_SMTP_PORT=25
-BIFROSTNMS_SMTP_SECURITY=none
-BIFROSTNMS_SMTP_TIMEOUT_SECONDS=15
-BIFROSTNMS_SMTP_FROM_EMAIL=bifrostnms@localhost
+BIFROSTNMS_SMTP_FROM_EMAIL=bifrostnms@example.com
 BIFROSTNMS_SMTP_FROM_NAME=BifrostNMS
 ```
 
-Optional authentication:
+If only one of username/password is configured, startup of the backend raises a configuration error rather than silently attempting unauthenticated delivery.
+
+`BIFROSTNMS_SMTP_SECURITY` accepts `none`, `starttls`, or `ssl`. TLS certificate validation uses Python's default trusted certificate store.
+
+## Microsoft Graph
+
+The Microsoft Graph backend is based on the certificate-authenticated app-only pattern used by TechWiki, adapted behind BifrostNMS's provider-neutral email interface.
+
+It uses Microsoft Entra client-credentials authentication and calls Microsoft Graph `POST /users/{sender}/sendMail`. The Entra application needs the Microsoft Graph **application** permission `Mail.Send` and administrator consent.
+
+### App registration
+
+Create or reuse an Entra app registration and record:
+
+- Directory (tenant) ID
+- Application (client) ID
+- the dedicated mailbox/user principal name that BifrostNMS sends as
+
+Upload the public X.509 certificate to the app registration under **Certificates & secrets > Certificates**. BifrostNMS keeps the corresponding private key.
+
+For production, restrict the app's effective Exchange mailbox scope to the dedicated BifrostNMS sender mailbox where practical. `Mail.Send` application permission is otherwise broad.
+
+### Configuration using mounted certificate files
+
+This is the preferred self-hosted/production approach when Docker/Kubernetes secrets or another secret mount is available:
 
 ```env
-BIFROSTNMS_SMTP_USERNAME=
-BIFROSTNMS_SMTP_PASSWORD=
+BIFROSTNMS_EMAIL_BACKEND=microsoft_graph
+BIFROSTNMS_MICROSOFT_GRAPH_TENANT_ID=<tenant-id>
+BIFROSTNMS_MICROSOFT_GRAPH_CLIENT_ID=<client-id>
+BIFROSTNMS_MICROSOFT_GRAPH_SENDER_EMAIL=bifrostnms@example.com
+BIFROSTNMS_MICROSOFT_GRAPH_FROM_NAME=BifrostNMS
+BIFROSTNMS_MICROSOFT_GRAPH_CERTIFICATE_PATH=/run/secrets/bifrostnms-graph.crt
+BIFROSTNMS_MICROSOFT_GRAPH_PRIVATE_KEY_PATH=/run/secrets/bifrostnms-graph.key
+BIFROSTNMS_MICROSOFT_GRAPH_PRIVATE_KEY_PASSPHRASE=
+BIFROSTNMS_MICROSOFT_GRAPH_TIMEOUT_SECONDS=15
 ```
 
-Do not commit real SMTP credentials. Production deployments should inject them through environment variables or their secret-management system.
+### Configuration using base64 environment values
+
+As in TechWiki, both PEM credentials may instead be supplied as base64-encoded UTF-8. This is useful for deployment systems that inject text secrets through environment variables:
+
+```env
+BIFROSTNMS_EMAIL_BACKEND=microsoft_graph
+BIFROSTNMS_MICROSOFT_GRAPH_TENANT_ID=<tenant-id>
+BIFROSTNMS_MICROSOFT_GRAPH_CLIENT_ID=<client-id>
+BIFROSTNMS_MICROSOFT_GRAPH_SENDER_EMAIL=bifrostnms@example.com
+BIFROSTNMS_MICROSOFT_GRAPH_CERTIFICATE_BASE64=<base64-of-public-certificate-pem>
+BIFROSTNMS_MICROSOFT_GRAPH_PRIVATE_KEY_BASE64=<base64-of-private-key-pem>
+BIFROSTNMS_MICROSOFT_GRAPH_PRIVATE_KEY_PASSPHRASE=
+```
+
+Base64 values take precedence over file paths if both are configured.
+
+Example commands to prepare one-line base64 values on Linux/macOS:
+
+```bash
+base64 < bifrostnms-graph.crt | tr -d '\n'
+base64 < bifrostnms-graph.key | tr -d '\n'
+```
+
+Never commit the certificate private key, its passphrase, or base64-encoded private key to Git. Base64 is encoding, not encryption.
+
+### Graph message format
+
+BifrostNMS builds one normal RFC 5322/MIME message for both providers. Microsoft Graph receives the base64-encoded MIME representation, which preserves:
+
+- plain-text and HTML alternatives
+- multiple recipients
+- `Reply-To`
+- custom headers
+- the same subject/body semantics as SMTP
+
+A successful Graph `sendMail` request returns HTTP `202 Accepted`. That means Graph accepted the request for processing, not that final mailbox delivery has already completed.
 
 ## Sending application email
 
-Use the Celery task rather than calling SMTP directly from an API request:
+Always queue application email rather than calling a provider directly from an API request:
 
 ```python
 from bifrostnms.tasks.email import send_email
@@ -100,9 +161,9 @@ For workflows whose contents depend on durable database state, prefer passing an
 
 ## Retries and idempotency
 
-SMTP delivery retries automatically for connection-level `OSError` and timeout failures with exponential backoff, up to five retries.
+Connection-level failures and Microsoft Graph delivery failures are retried by Celery with exponential backoff, up to five retries.
 
-SMTP itself does not provide exactly-once delivery. A worker can fail after the remote SMTP server accepted a message but before Celery acknowledged the task. Email-generating workflows should therefore be designed with duplicate-delivery risk in mind. Where duplicate notifications would be harmful, persist an outbound-message/event record and make delivery idempotent around that record.
+Neither SMTP nor Microsoft Graph gives BifrostNMS a true exactly-once delivery guarantee. A worker can fail after the provider has accepted a message but before Celery acknowledges the task. Where duplicate notifications would be harmful, persist an outbound-message/event record and make delivery idempotent around that record.
 
 ## Test email
 
@@ -112,20 +173,19 @@ With the Celery worker running:
 ./tools/send-test-email you@example.com
 ```
 
-or:
+or use the VS Code task **email: send test**.
 
-```bash
-./tools/send-test-email you@example.com --subject "SMTP check"
-```
-
-This queues the test message through Celery; it does not bypass the background-job path.
+The test goes through Celery and whichever backend is selected by `BIFROSTNMS_EMAIL_BACKEND`.
 
 ## Main code locations
 
-- `backend/bifrostnms/email/smtp.py` — SMTP transport and message construction
+- `backend/bifrostnms/email/base.py` — provider-neutral message model/protocol and MIME builder
+- `backend/bifrostnms/email/smtp.py` — SMTP transport
+- `backend/bifrostnms/email/microsoft_graph.py` — certificate-authenticated Microsoft Graph transport
+- `backend/bifrostnms/email/__init__.py` — backend selection/factory
 - `backend/bifrostnms/tasks/email.py` — Celery email task
 - `backend/bifrostnms/cli/send_test_email.py` — test-email command
 - `tools/send-test-email` — developer wrapper
-- `backend/bifrostnms/config.py` — SMTP configuration
+- `backend/bifrostnms/config.py` — provider configuration
 
-The transport is intentionally isolated from callers so BifrostNMS Cloud can later introduce another email provider without changing authentication/notification business logic.
+Business logic must depend on the provider-neutral email layer, not directly on SMTP, Graph, MSAL, or `requests`.
