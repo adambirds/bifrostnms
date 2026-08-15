@@ -1,11 +1,13 @@
 celery[redis]>=5.6,<5.7
 cryptography
 fastapi
+msal
 pydantic[email]
 pydantic-settings
 pwdlib[argon2]
 pyotp
 redis[hiredis]
+requests
 tortoise-orm[asyncpg]
 uvicorn[standard]
 webauthn
