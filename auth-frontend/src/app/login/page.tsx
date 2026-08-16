@@ -154,6 +154,7 @@ export default function LoginPage() {
         </div>
         <button className="primary" disabled={loading || passkeyLoading}>{loading ? 'Signing in…' : 'Sign in'}</button>
       </form>
+      <p className="footer"><Link href="/forgot-password">Forgot your password?</Link></p>
       <p className="footer">No account yet? <Link href="/signup">Create one</Link></p>
     </AuthCard>
   )

@@ -170,6 +170,13 @@ button:disabled {
   color: #9cabc6;
 }
 
+.inline-action {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
