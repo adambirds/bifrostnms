@@ -60,7 +60,7 @@ async def enrol_agent(payload: AgentEnrolmentRequest, request: Request) -> Agent
     await record_audit_event(
         action="agent.credential.create",
         outcome=AuditOutcome.SUCCESS,
-        actor_type=AuditActorType.AGENT,
+        actor_type=AuditActorType.ANONYMOUS,
         request=request,
         realm=realm,
         target_type="agent_credential",
@@ -92,7 +92,11 @@ async def heartbeat(
         heartbeat_interval_seconds=settings.agent_heartbeat_interval_seconds,
         configuration_poll_interval_seconds=(settings.agent_configuration_poll_interval_seconds),
         desired_configuration_revision=configuration.desired_revision,
-        desired_configuration_hash=configuration.desired_content_hash,
+        desired_configuration_hash=(
+            f"sha256:{configuration.desired_content_hash}"
+            if configuration.desired_content_hash
+            else ""
+        ),
         configuration_update_available=(
             configuration.desired_revision != payload.active_configuration_revision
         ),
