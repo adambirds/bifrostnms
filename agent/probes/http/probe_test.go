@@ -23,7 +23,7 @@ func TestProbeHealthyHTTP(t *testing.T) {
 	defer server.Close()
 
 	configuration := configurationForServer(t, server.URL, map[string]any{
-		"expected_status_codes": []int{200},
+		"expected_status_codes":  []int{200},
 		"expected_header_values": []map[string]string{{"name": "X-Bifrost", "value": "ready"}},
 		"expected_body_contains": []string{"healthy"},
 	})
@@ -51,7 +51,7 @@ func TestProbeAssertionFailureIsCompletedUnhealthy(t *testing.T) {
 	defer server.Close()
 
 	configuration := configurationForServer(t, server.URL, map[string]any{
-		"expected_status_codes": []int{200},
+		"expected_status_codes":  []int{200},
 		"expected_body_contains": []string{"expected"},
 	})
 	result := New(nil).Run(context.Background(), probe.Request{
@@ -83,7 +83,7 @@ func TestProbeFollowsBoundedRedirects(t *testing.T) {
 
 	configuration := configurationForServer(t, redirect.URL, map[string]any{
 		"expected_status_codes": []int{204},
-		"maximum_redirects": 2,
+		"maximum_redirects":     2,
 	})
 	result := New(nil).Run(context.Background(), probe.Request{
 		TargetAddress: configuration.target,
@@ -166,20 +166,20 @@ func configurationForServer(t *testing.T, serverURL string, overrides map[string
 		}
 	}
 	configuration := map[string]any{
-		"schema_version": 1,
-		"scheme": request.URL.Scheme,
-		"port": port,
-		"path": "/",
-		"method": "GET",
-		"follow_redirects": true,
-		"maximum_redirects": 5,
-		"host_header": nil,
-		"request_headers": map[string]string{},
-		"expected_status_codes": []int{200},
+		"schema_version":         1,
+		"scheme":                 request.URL.Scheme,
+		"port":                   port,
+		"path":                   "/",
+		"method":                 "GET",
+		"follow_redirects":       true,
+		"maximum_redirects":      5,
+		"host_header":            nil,
+		"request_headers":        map[string]string{},
+		"expected_status_codes":  []int{200},
 		"expected_header_values": []map[string]string{},
 		"expected_body_contains": []string{},
 		"maximum_response_bytes": 1048576,
-		"address_family": "auto",
+		"address_family":         "auto",
 	}
 	for key, value := range overrides {
 		configuration[key] = value
