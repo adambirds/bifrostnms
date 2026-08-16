@@ -21,6 +21,31 @@ func (t syntheticICMPTransport) Exchange(
 	return t.samples, nil
 }
 
+func TestLoadActiveConfigurationAllowsNoConfiguration(t *testing.T) {
+	ctx := context.Background()
+	store, err := storage.Open(ctx, filepath.Join(t.TempDir(), "agent.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	registry, err := probe.NewRegistry(
+		icmpprobe.New(syntheticICMPTransport{samples: []float64{8, 10, 12}}),
+	)
+	if err != nil {
+		t.Fatalf("create probe registry: %v", err)
+	}
+	engine, err := New(store, registry, 1, storage.DefaultQueueLimits())
+	if err != nil {
+		t.Fatalf("create engine: %v", err)
+	}
+	if err := engine.LoadActiveConfiguration(ctx, time.Now().UTC()); err != nil {
+		t.Fatalf("load empty active configuration: %v", err)
+	}
+	if len(engine.NextDue()) != 0 {
+		t.Fatalf("empty configuration scheduled monitors = %#v", engine.NextDue())
+	}
+}
+
 func TestICMPExecutionFlowsFromActiveConfigurationToDurableQueue(t *testing.T) {
 	ctx := context.Background()
 	store, err := storage.Open(ctx, filepath.Join(t.TempDir(), "agent.db"))
