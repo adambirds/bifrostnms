@@ -220,14 +220,23 @@ class TcpObservationResult(BaseModel):
     connect_ms: float | None = Field(default=None, ge=0)
 
 
+class DnsAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["A", "AAAA", "CNAME", "MX", "NS", "PTR", "TXT"]
+    name: str = Field(min_length=1, max_length=253)
+    ttl: int | None = Field(default=None, ge=0)
+    value: str = Field(min_length=1, max_length=1024)
+
+
 class DnsObservationResult(BaseModel):
-    resolver_address: str = Field(min_length=2, max_length=45)
+    resolver_address: str | None = Field(default=None, min_length=2, max_length=45)
     query_name: str = Field(min_length=1, max_length=253)
-    query_type: Literal["A", "AAAA", "CNAME", "MX", "NS", "PTR", "SOA", "TXT"]
+    query_type: Literal["A", "AAAA", "CNAME", "MX", "NS", "PTR", "TXT"]
     response_code: str | None = Field(default=None, max_length=32)
     response_ms: float | None = Field(default=None, ge=0)
-    answer_count: int = Field(ge=0, le=1000)
-    answers: list[dict[str, Any]] = Field(max_length=1000)
+    answer_count: int = Field(ge=0, le=100)
+    answers: list[DnsAnswer] = Field(max_length=100)
     truncated: bool
     authoritative: bool
     assertions_total: int = Field(ge=0, le=100)
