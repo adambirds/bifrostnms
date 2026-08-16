@@ -134,6 +134,9 @@ jobs:
       - name: Lint dashboard
         run: pnpm --dir frontend lint
 
+      - name: Test dashboard behavior
+        run: pnpm --dir frontend test
+
   build-and-analyze:
     name: Build and Bundle Analysis
     runs-on: ubuntu-latest
