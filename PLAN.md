@@ -659,15 +659,15 @@ implicitly approved merely because it appears in this list.
 Stage 0 must resolve at least these questions before dependent implementation:
 
 - Historical behavior when targets, monitors, agents or realms are deleted.
-- Agent credential format, rotation and revocation.
-- Configuration versioning, validation and rollback semantics.
-- Observation acknowledgement and local cleanup protocol.
-- Agent clock skew detection and timestamp authority.
-- Capability negotiation across mixed agent versions.
 - Health-state derivation and missing-data semantics.
 
 The observation schema, raw/aggregate relationship and initial TimescaleDB
 strategy are settled in `docs/architecture/measurements.md`.
+
+Agent credentials, configuration delivery, capability negotiation, local SQLite
+storage, synchronization and acknowledgement behavior are settled across
+`docs/architecture/agent-protocol.md`, `docs/architecture/agent-storage.md` and
+`docs/architecture/sync.md`.
 
 ## Decision record
 
