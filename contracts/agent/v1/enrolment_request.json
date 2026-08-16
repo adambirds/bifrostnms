@@ -1,0 +1,16 @@
+{
+  "protocol_version": 1,
+  "enrolment_token": "example-enrolment-token-with-at-least-32-characters",
+  "agent_version": "0.1.0",
+  "platform": "linux",
+  "architecture": "amd64",
+  "hostname": "monitor-1",
+  "capabilities": {
+    "probes": {
+      "icmp": { "schema_versions": [1], "available": true },
+      "http": { "schema_versions": [1], "available": true }
+    },
+    "runtime": { "raw_socket": true, "ipv4": true, "ipv6": true },
+    "external_tools": {}
+  }
+}
