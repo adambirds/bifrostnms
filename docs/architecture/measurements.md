@@ -507,21 +507,17 @@ that dropping a chunk affects only one realm.
 
 ## TimescaleDB deployment requirement
 
-The current development and CI Compose services use plain `postgres:17-alpine`.
-That is incompatible with the settled architecture and must change before Stage
-3 migrations introduce hypertables.
+Development and backend CI use the pinned
+`timescale/timescaledb:2.29.0-pg17` image so extension behavior is exercised
+before Stage 3 introduces hypertables.
 
 Implementation must:
 
-- select and pin a supported self-hosted TimescaleDB image compatible with the
-  project's PostgreSQL version;
-- enable the extension through a reviewed migration/bootstrap step;
-- run migration and integration tests against TimescaleDB in CI;
 - document backup, restore and upgrade compatibility; and
 - avoid floating `latest` database tags.
 
-Local development, CI and supported production Compose must exercise the same
-TimescaleDB major compatibility line.
+Supported production deployments must exercise the same PostgreSQL 17 and
+TimescaleDB 2.29 compatibility line as development and CI.
 
 ## Migration ownership
 
