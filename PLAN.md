@@ -550,7 +550,7 @@ Acceptance criteria:
 
 ### Stage 7: ICMP monitoring
 
-**Status: Not started**
+**Status: Validated**
 
 Objective: complete the first end-to-end monitoring path using native Go ICMP.
 
