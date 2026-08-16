@@ -1,4 +1,5 @@
 import AccountShell from '@/components/AccountShell'
+import EmailVerificationAction from '@/components/EmailVerificationAction'
 import {requireAccountUser} from '@/lib/server-auth'
 
 export default async function AccountPage() {
@@ -23,6 +24,7 @@ export default async function AccountPage() {
           <div><dt>Active realm</dt><dd>{activeRealm?.name ?? 'None selected'}</dd></div>
           {user.is_superuser && <div><dt>Installation access</dt><dd>Superuser</dd></div>}
         </dl>
+        {!user.email_verified && <EmailVerificationAction />}
       </section>
 
       <section className="account-panel account-security-summary">
