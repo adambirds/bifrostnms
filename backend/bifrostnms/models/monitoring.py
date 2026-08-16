@@ -57,12 +57,15 @@ class AgentGroup(RealmOwnedModel):
 
 class AgentGroupMembership(Model):
     id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
+    realm_id: uuid.UUID
     realm: fields.ForeignKeyRelation[Realm] = fields.ForeignKeyField(
         "models.Realm", related_name=False, on_delete=fields.RESTRICT
     )
     agent_group: fields.ForeignKeyRelation[AgentGroup] = fields.ForeignKeyField(
         "models.AgentGroup", related_name="memberships", on_delete=fields.CASCADE
     )
+    agent_group_id: uuid.UUID
+    agent_id: uuid.UUID
     agent: fields.ForeignKeyRelation[Agent] = fields.ForeignKeyField(
         "models.Agent", related_name="group_memberships", on_delete=fields.CASCADE
     )
@@ -112,12 +115,15 @@ class TargetGroup(RealmOwnedModel):
 
 class TargetGroupMembership(Model):
     id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
+    realm_id: uuid.UUID
     realm: fields.ForeignKeyRelation[Realm] = fields.ForeignKeyField(
         "models.Realm", related_name=False, on_delete=fields.RESTRICT
     )
     target_group: fields.ForeignKeyRelation[TargetGroup] = fields.ForeignKeyField(
         "models.TargetGroup", related_name="memberships", on_delete=fields.CASCADE
     )
+    target_group_id: uuid.UUID
+    target_id: uuid.UUID
     target: fields.ForeignKeyRelation[Target] = fields.ForeignKeyField(
         "models.Target", related_name="group_memberships", on_delete=fields.CASCADE
     )
@@ -147,12 +153,14 @@ class Monitor(RealmOwnedModel):
 
 
 class MonitorAgentAssignment(RealmOwnedModel):
+    monitor_id: uuid.UUID
     monitor: fields.ForeignKeyRelation[Monitor] = fields.ForeignKeyField(
         "models.Monitor", related_name="agent_assignments", on_delete=fields.CASCADE
     )
     agent: fields.ForeignKeyRelation[Agent] = fields.ForeignKeyField(
         "models.Agent", related_name="monitor_assignments", on_delete=fields.CASCADE
     )
+    agent_id: uuid.UUID
     enabled = fields.BooleanField(default=True)
 
     class Meta:
@@ -160,12 +168,14 @@ class MonitorAgentAssignment(RealmOwnedModel):
 
 
 class MonitorAgentGroupAssignment(RealmOwnedModel):
+    monitor_id: uuid.UUID
     monitor: fields.ForeignKeyRelation[Monitor] = fields.ForeignKeyField(
         "models.Monitor", related_name="agent_group_assignments", on_delete=fields.CASCADE
     )
     agent_group: fields.ForeignKeyRelation[AgentGroup] = fields.ForeignKeyField(
         "models.AgentGroup", related_name="monitor_assignments", on_delete=fields.CASCADE
     )
+    agent_group_id: uuid.UUID
     enabled = fields.BooleanField(default=True)
 
     class Meta:

@@ -65,3 +65,60 @@ class MonitorResponse(MonitoringResponse):
     enabled: bool
     revision: int
     archived_at: datetime | None
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    parent_id: UUID | None = None
+
+
+class AgentGroupCreate(GroupCreate):
+    enabled: bool = True
+
+
+class AgentGroupResponse(MonitoringResponse):
+    parent_id: UUID | None
+    name: str
+    description: str | None
+    enabled: bool
+    archived_at: datetime | None
+
+
+class TargetGroupResponse(MonitoringResponse):
+    parent_id: UUID | None
+    name: str
+    description: str | None
+    archived_at: datetime | None
+
+
+class AgentGroupMembershipResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    realm_id: UUID
+    agent_group_id: UUID
+    agent_id: UUID
+    created_at: datetime
+
+
+class TargetGroupMembershipResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    realm_id: UUID
+    target_group_id: UUID
+    target_id: UUID
+    created_at: datetime
+
+
+class MonitorAgentAssignmentResponse(MonitoringResponse):
+    monitor_id: UUID
+    agent_id: UUID
+    enabled: bool
+
+
+class MonitorAgentGroupAssignmentResponse(MonitoringResponse):
+    monitor_id: UUID
+    agent_group_id: UUID
+    enabled: bool
