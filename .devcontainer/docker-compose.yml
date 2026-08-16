@@ -17,6 +17,7 @@ services:
 
   postgres:
     image: timescale/timescaledb:2.29.0-pg17
+    command: ['postgres', '-c', 'shared_preload_libraries=timescaledb']
     environment:
       POSTGRES_DB: bifrostnms
       POSTGRES_USER: bifrostnms
