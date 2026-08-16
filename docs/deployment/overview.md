@@ -63,6 +63,22 @@ grant that binary `cap_net_raw=ep` or supply the equivalent narrowly scoped
 runtime capability. A missing capability is an agent operational error, not
 packet loss or a target failure.
 
+Enroll an agent once against its durable database before starting its ordinary
+long-running process:
+
+```console
+BIFROSTNMS_AGENT_ENROLMENT_TOKEN='<single-use token>' \
+  bifrost-agent enrol --control-plane https://nms.example.com
+bifrost-agent
+```
+
+The token environment variable is read only by the `enrol` command. Unset it
+after enrollment and avoid the `--token` flag in automated deployments because
+command-line arguments may be visible to other host users. Set
+`BIFROSTNMS_AGENT_DATABASE_PATH` only when overriding the default
+`/var/lib/bifrostnms-agent/agent.db`; the same durable path must be used for
+enrollment and normal operation.
+
 ## Secrets
 
 At minimum, provision these through a secret manager or mounted secret facility:
