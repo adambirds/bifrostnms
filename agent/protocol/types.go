@@ -1,7 +1,12 @@
 package protocol
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -109,4 +114,74 @@ type ErrorBody struct {
 
 type ErrorResponse struct {
 	Error ErrorBody `json:"error"`
+}
+
+var (
+	ErrConfigurationIdentity   = errors.New("configuration identity does not match enrolled agent")
+	ErrConfigurationHash       = errors.New("configuration content hash is invalid")
+	ErrConfigurationCapability = errors.New("configuration requires an unsupported capability")
+)
+
+func (c ConfigurationResponse) Validate(
+	agentID string, realmID string, capabilities Capabilities,
+) ([]byte, error) {
+	if c.ProtocolVersion != Version || c.ConfigurationSchemaVersion != 1 || c.Revision < 1 {
+		return nil, fmt.Errorf("unsupported configuration protocol or schema version")
+	}
+	if c.AgentID != agentID || c.RealmID != realmID {
+		return nil, ErrConfigurationIdentity
+	}
+	seen := make(map[string]struct{}, len(c.Monitors))
+	monitors := make([]any, 0, len(c.Monitors))
+	for _, monitor := range c.Monitors {
+		if _, exists := seen[monitor.MonitorID]; exists {
+			return nil, fmt.Errorf("duplicate monitor %s", monitor.MonitorID)
+		}
+		seen[monitor.MonitorID] = struct{}{}
+		capability, ok := capabilities.Probes[monitor.ProbeType]
+		if !ok || !capability.Available || !slices.Contains(
+			capability.SchemaVersions, monitor.ProbeSchemaVersion,
+		) {
+			return nil, fmt.Errorf("%w: monitor=%s probe=%s", ErrConfigurationCapability,
+				monitor.MonitorID, monitor.ProbeType)
+		}
+		if monitor.IntervalSeconds < 1 || monitor.TimeoutSeconds < 1 ||
+			monitor.TimeoutSeconds >= monitor.IntervalSeconds || monitor.MissedRunPolicy != "skip" {
+			return nil, fmt.Errorf("invalid scheduling policy for monitor %s", monitor.MonitorID)
+		}
+		var configuration any
+		encodedConfiguration, err := json.Marshal(monitor.Configuration)
+		if err != nil {
+			return nil, fmt.Errorf("encode monitor %s configuration: %w", monitor.MonitorID, err)
+		}
+		if err := json.Unmarshal(encodedConfiguration, &configuration); err != nil {
+			return nil, fmt.Errorf("decode monitor %s configuration: %w", monitor.MonitorID, err)
+		}
+		monitors = append(monitors, map[string]any{
+			"monitor_id":           monitor.MonitorID,
+			"target_id":            monitor.TargetID,
+			"monitor_revision":     monitor.MonitorRevision,
+			"target_address":       monitor.TargetAddress,
+			"probe_type":           monitor.ProbeType,
+			"probe_schema_version": monitor.ProbeSchemaVersion,
+			"interval_seconds":     monitor.IntervalSeconds,
+			"timeout_seconds":      monitor.TimeoutSeconds,
+			"missed_run_policy":    monitor.MissedRunPolicy,
+			"configuration":        configuration,
+		})
+	}
+	canonical, err := json.Marshal(map[string]any{
+		"configuration_schema_version": c.ConfigurationSchemaVersion,
+		"agent_id":                     c.AgentID,
+		"realm_id":                     c.RealmID,
+		"monitors":                     monitors,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("canonicalize configuration: %w", err)
+	}
+	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(canonical))
+	if !strings.EqualFold(digest, c.ContentHash) {
+		return nil, ErrConfigurationHash
+	}
+	return canonical, nil
 }
