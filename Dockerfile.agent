@@ -5,6 +5,11 @@ COPY agent/ ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/bifrost-agent ./cmd/bifrost-agent
 
 FROM alpine:3.22
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates libcap \
+	&& addgroup -S bifrostnms \
+	&& adduser -S -D -H -G bifrostnms bifrostnms \
+	&& install -d -m 0700 -o bifrostnms -g bifrostnms /var/lib/bifrostnms-agent
 COPY --from=build /out/bifrost-agent /usr/local/bin/bifrost-agent
+RUN setcap cap_net_raw=ep /usr/local/bin/bifrost-agent
+USER bifrostnms
 ENTRYPOINT ["/usr/local/bin/bifrost-agent"]
