@@ -5,9 +5,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 from tortoise.transactions import in_transaction
 
+from bifrostnms.agents.protocol import AgentProtocolError
 from bifrostnms.auth.security import hash_token
 from bifrostnms.config import get_settings
 from bifrostnms.models import Agent, AgentCredential, AgentEnrolmentToken, Realm
@@ -98,7 +99,12 @@ async def authenticate_agent(request: Request) -> AgentAuthentication:
     authorization = request.headers.get("authorization", "")
     scheme, separator, raw_credential = authorization.partition(" ")
     if scheme.lower() != "bearer" or not separator:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise AgentProtocolError(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            code="not_authenticated",
+            message="Agent authentication is required.",
+            retryable=False,
+        )
     identifier, separator, secret = raw_credential.partition(".")
     try:
         credential_id = UUID(identifier)
@@ -120,7 +126,12 @@ async def authenticate_agent(request: Request) -> AgentAuthentication:
         and credential.agent.archived_at is None
     )
     if not valid or credential is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credential")
+        raise AgentProtocolError(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            code="invalid_credential",
+            message="Agent credential is invalid or expired.",
+            retryable=False,
+        )
     credential.last_used_at = now
     await credential.save(update_fields=["last_used_at"])
     return AgentAuthentication(

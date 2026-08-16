@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, patch
@@ -25,6 +26,7 @@ from bifrostnms.api.monitoring import (
     delete_monitor_agent_assignment,
     delete_monitor_agent_group_assignment,
     delete_target,
+    get_agent_status,
     list_agents,
     list_monitors,
     list_targets,
@@ -35,6 +37,7 @@ from bifrostnms.models import (
     AgentConfigurationState,
     AgentGroup,
     AgentGroupMembership,
+    AgentOperationalState,
     Monitor,
     MonitorAgentAssignment,
     MonitorAgentGroupAssignment,
@@ -65,6 +68,7 @@ async def realm() -> AsyncIterator[Realm]:
         yield item
     finally:
         await AgentConfigurationState.filter(realm=item).delete()
+        await AgentOperationalState.filter(realm=item).delete()
         await MonitorAgentGroupAssignment.filter(realm=item).delete()
         await MonitorAgentAssignment.filter(realm=item).delete()
         await AgentGroupMembership.filter(realm=item).delete()
@@ -104,6 +108,29 @@ async def test_agent_and_target_lists_are_realm_scoped(realm: Realm) -> None:
         await Agent.filter(realm=other).delete()
         await Target.filter(realm=other).delete()
         await other.delete()
+
+
+@pytest.mark.asyncio
+async def test_agent_status_is_derived_from_latest_heartbeat(realm: Realm) -> None:
+    agent = await Agent.create(realm=realm, name="Status")
+    state = await AgentOperationalState.create(
+        realm=realm,
+        agent=agent,
+        last_heartbeat_at=datetime.now(UTC),
+        agent_version="0.1.0",
+        platform="linux",
+        architecture="amd64",
+        hostname="status-agent",
+        database_health="healthy",
+        scheduler_state="running",
+        agent_time=datetime.now(UTC),
+        clock_offset_ms=0,
+    )
+    with patch("bifrostnms.api.monitoring.require_realm_permission", authorize(realm)):
+        assert (await get_agent_status(agent.id, request())).online is True
+        state.last_heartbeat_at = datetime.now(UTC) - timedelta(minutes=2)
+        await state.save(update_fields=["last_heartbeat_at"])
+        assert (await get_agent_status(agent.id, request())).online is False
 
 
 @pytest.mark.asyncio
