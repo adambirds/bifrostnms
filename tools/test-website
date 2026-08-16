@@ -6,4 +6,4 @@ cd "$(git rev-parse --show-toplevel)"
 echo "🧪 Checking BifrostNMS dashboard..."
 pnpm --dir frontend typecheck
 pnpm --dir frontend lint
-pnpm --dir frontend build
+NODE_ENV=production pnpm --dir frontend build
