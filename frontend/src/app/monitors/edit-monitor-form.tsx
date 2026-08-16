@@ -3,11 +3,16 @@
 import { useActionState } from 'react'
 
 import {
-  initialMonitorEditState,
+  type MonitorEditState,
   updateMonitorAction,
 } from '@/app/monitors/edit-actions'
 import { MonitorFields } from '@/app/monitors/monitor-fields'
 import type { Monitor, Target } from '@/lib/monitoring'
+
+const initialMonitorEditState: MonitorEditState = {
+  error: null,
+  success: null,
+}
 
 export function EditMonitorForm({
   monitor,
