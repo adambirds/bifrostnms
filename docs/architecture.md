@@ -15,6 +15,12 @@ See `PLAN.md` for the product scope, delivery stages and architectural decision
 record. Detailed authentication behavior is documented in
 `docs/architecture/authentication.md`.
 
+Detailed architecture documents:
+
+- `docs/architecture/authentication.md`
+- `docs/architecture/tenancy.md`
+- `docs/architecture/data-model.md`
+
 ## Components
 
 ### Control plane
