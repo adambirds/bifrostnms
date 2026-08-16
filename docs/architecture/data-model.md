@@ -473,13 +473,13 @@ implement this domain in the following order:
 Every persistent change requires a reviewed Tortoise migration. Do not use
 `generate_schemas()` as a substitute.
 
-## Questions intentionally left for adjacent designs
+## Decisions delegated to adjacent designs
 
 - The exact agent credential and enrolment protocol.
 - Full desired-configuration snapshot retention.
-- Observation status/error taxonomy.
-- Probe-specific result and measurement schemas.
-- TimescaleDB hypertable dimensions and indexes.
-- Raw-sample retention, aggregation, compression and deletion.
+- Observation status/error taxonomy is defined in `measurements.md` and may be
+  refined by the versioned agent protocol.
+- Probe-specific result storage, TimescaleDB dimensions, indexes and retention
+  are defined in `measurements.md`.
 - Agent clock-skew handling and authoritative timestamps.
 - Health derivation from observations, heartbeats and missing data.

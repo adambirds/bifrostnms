@@ -20,6 +20,7 @@ Detailed architecture documents:
 - `docs/architecture/authentication.md`
 - `docs/architecture/tenancy.md`
 - `docs/architecture/data-model.md`
+- `docs/architecture/measurements.md`
 
 ## Components
 
