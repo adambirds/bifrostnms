@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -347,6 +348,9 @@ _HISTORY_QUERY = """
 
 def _typed_result(probe_type: ProbeType, row: dict[str, Any]) -> ProbeResult | None:
     payload = row.get("result")
+    if isinstance(payload, str):
+        decoded = json.loads(payload)
+        payload = decoded if isinstance(decoded, dict) else None
     if not isinstance(payload, dict):
         return None
     if probe_type == ProbeType.ICMP:
