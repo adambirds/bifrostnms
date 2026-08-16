@@ -13,16 +13,44 @@ from tortoise import Tortoise
 
 from bifrostnms.api.monitoring import (
     create_agent,
+    create_agent_group,
+    create_agent_group_membership,
+    create_monitor_agent_assignment,
+    create_monitor_agent_group_assignment,
     create_monitor_endpoint,
     create_target,
+    create_target_group,
+    create_target_group_membership,
+    delete_agent_group_membership,
+    delete_monitor_agent_assignment,
+    delete_monitor_agent_group_assignment,
     delete_target,
     list_agents,
     list_monitors,
     list_targets,
 )
 from bifrostnms.database import TORTOISE_ORM
-from bifrostnms.models import Agent, Monitor, ProbeType, Realm, Target
-from bifrostnms.schemas.monitoring_api import AgentCreate, MonitorCreate, TargetCreate
+from bifrostnms.models import (
+    Agent,
+    AgentConfigurationState,
+    AgentGroup,
+    AgentGroupMembership,
+    Monitor,
+    MonitorAgentAssignment,
+    MonitorAgentGroupAssignment,
+    ProbeType,
+    Realm,
+    Target,
+    TargetGroup,
+    TargetGroupMembership,
+)
+from bifrostnms.schemas.monitoring_api import (
+    AgentCreate,
+    AgentGroupCreate,
+    GroupCreate,
+    MonitorCreate,
+    TargetCreate,
+)
 
 
 def request() -> Request:
@@ -36,7 +64,16 @@ async def realm() -> AsyncIterator[Realm]:
     try:
         yield item
     finally:
+        await AgentConfigurationState.filter(realm=item).delete()
+        await MonitorAgentGroupAssignment.filter(realm=item).delete()
+        await MonitorAgentAssignment.filter(realm=item).delete()
+        await AgentGroupMembership.filter(realm=item).delete()
+        await TargetGroupMembership.filter(realm=item).delete()
         await Monitor.filter(realm=item).delete()
+        await AgentGroup.filter(realm=item).update(parent_id=None)
+        await TargetGroup.filter(realm=item).update(parent_id=None)
+        await AgentGroup.filter(realm=item).delete()
+        await TargetGroup.filter(realm=item).delete()
         await Agent.filter(realm=item).delete()
         await Target.filter(realm=item).delete()
         await item.delete()
@@ -138,3 +175,42 @@ async def test_delete_target_archives_it_instead_of_removing_it(realm: Realm) ->
     await target.refresh_from_db()
     assert target.archived_at is not None
     assert target.enabled is False
+
+
+@pytest.mark.asyncio
+async def test_group_memberships_and_assignments_are_idempotent(realm: Realm) -> None:
+    auth = authorize(realm)
+    target = await Target.create(realm=realm, name="Router", address="192.0.2.5")
+    monitor = await Monitor.create(
+        realm=realm,
+        target=target,
+        name="Ping",
+        probe_type=ProbeType.ICMP,
+        interval_seconds=30,
+        timeout_seconds=5,
+        configuration={"schema_version": 1},
+    )
+    agent = await Agent.create(realm=realm, name="London")
+
+    with patch("bifrostnms.api.monitoring.require_realm_permission", auth):
+        agent_group = await create_agent_group(AgentGroupCreate(name="United Kingdom"), request())
+        target_group = await create_target_group(GroupCreate(name="Network"), request())
+        membership = await create_agent_group_membership(agent_group.id, agent.id, request())
+        repeated = await create_agent_group_membership(agent_group.id, agent.id, request())
+        target_membership = await create_target_group_membership(
+            target_group.id, target.id, request()
+        )
+        direct = await create_monitor_agent_assignment(monitor.id, agent.id, request())
+        grouped = await create_monitor_agent_group_assignment(monitor.id, agent_group.id, request())
+
+        assert repeated.id == membership.id
+        assert target_membership.target_id == target.id
+        assert direct.agent_id == agent.id
+        assert grouped.agent_group_id == agent_group.id
+
+        await delete_monitor_agent_assignment(monitor.id, agent.id, request())
+        await delete_monitor_agent_group_assignment(monitor.id, agent_group.id, request())
+        await delete_agent_group_membership(agent_group.id, agent.id, request())
+
+    state = await AgentConfigurationState.get(agent=agent)
+    assert state.desired_revision == 4

@@ -237,6 +237,20 @@ async def add_target_to_group(
     return membership
 
 
+async def remove_agent_from_group(*, realm: Realm, group: AgentGroup, agent: Agent) -> bool:
+    _require_same_realm(realm, group, agent)
+    deleted = await AgentGroupMembership.filter(
+        realm=realm, agent_group=group, agent=agent
+    ).delete()
+    if deleted:
+        has_assignments = await MonitorAgentGroupAssignment.filter(
+            realm=realm, agent_group=group, enabled=True
+        ).exists()
+        if has_assignments:
+            await _bump_configuration_revisions([agent.id], realm.id)
+    return bool(deleted)
+
+
 async def assign_monitor_to_agent(
     *, realm: Realm, monitor: Monitor, agent: Agent
 ) -> MonitorAgentAssignment:
@@ -286,6 +300,37 @@ async def assign_monitor_to_agent_group(
         )
         await _bump_configuration_revisions(agent_ids, realm.id)
     return assignment
+
+
+async def unassign_monitor_from_agent(*, realm: Realm, monitor: Monitor, agent: Agent) -> bool:
+    _require_same_realm(realm, monitor, agent)
+    deleted = await MonitorAgentAssignment.filter(
+        realm=realm, monitor=monitor, agent=agent
+    ).delete()
+    if deleted:
+        await _bump_configuration_revisions([agent.id], realm.id)
+    return bool(deleted)
+
+
+async def unassign_monitor_from_agent_group(
+    *, realm: Realm, monitor: Monitor, group: AgentGroup
+) -> bool:
+    _require_same_realm(realm, monitor, group)
+    agent_ids = cast(
+        list[UUID],
+        await AgentGroupMembership.filter(
+            realm=realm,
+            agent_group=group,
+            agent__enabled=True,
+            agent__archived_at=None,
+        ).values_list("agent_id", flat=True),
+    )
+    deleted = await MonitorAgentGroupAssignment.filter(
+        realm=realm, monitor=monitor, agent_group=group
+    ).delete()
+    if deleted:
+        await _bump_configuration_revisions(agent_ids, realm.id)
+    return bool(deleted)
 
 
 async def effective_agent_ids(monitor: Monitor) -> set[UUID]:

@@ -11,6 +11,9 @@ from .domain import (
     effective_agent_ids,
     move_agent_group,
     move_target_group,
+    remove_agent_from_group,
+    unassign_monitor_from_agent,
+    unassign_monitor_from_agent_group,
     update_monitor_behavior,
 )
 
@@ -27,5 +30,8 @@ __all__ = [
     "effective_agent_ids",
     "move_agent_group",
     "move_target_group",
+    "remove_agent_from_group",
+    "unassign_monitor_from_agent",
+    "unassign_monitor_from_agent_group",
     "update_monitor_behavior",
 ]
