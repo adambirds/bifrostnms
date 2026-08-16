@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/adambirds/bifrostnms/agent/probe"
@@ -100,6 +101,23 @@ func (e *Engine) RecordExecution(
 	request.ScheduledAt = request.ScheduledAt.Truncate(time.Microsecond)
 	execution.Result.StartedAt = execution.Result.StartedAt.Truncate(time.Microsecond)
 	execution.Result.FinishedAt = execution.Result.FinishedAt.Truncate(time.Microsecond)
+	if execution.Result.ExecutionStatus == probe.ExecutionFailed {
+		attributes := []any{
+			"monitor_id", request.MonitorID,
+			"target_id", request.TargetID,
+			"target_address", request.TargetAddress,
+			"probe_type", execution.ProbeType,
+			"error_code", execution.Result.ErrorCode,
+			"error_message", execution.Result.ErrorMessage,
+		}
+		if execution.Result.ErrorCategory != nil {
+			attributes = append(attributes, "error_category", *execution.Result.ErrorCategory)
+		}
+		if execution.Result.DiagnosticError != "" {
+			attributes = append(attributes, "diagnostic_error", execution.Result.DiagnosticError)
+		}
+		slog.Warn("probe execution failed", attributes...)
+	}
 	payload, err := probe.EncodeObservation(
 		execution.ProbeType, request, execution.Result, nil,
 	)
