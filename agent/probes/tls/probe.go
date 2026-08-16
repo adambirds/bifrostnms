@@ -22,21 +22,21 @@ type Dialer interface {
 }
 
 type Result struct {
-	Port              int        `json:"port"`
-	ServerName        string     `json:"server_name"`
-	ProtocolVersion   *string    `json:"protocol_version"`
-	CipherSuite       *string    `json:"cipher_suite"`
-	HandshakeMS       *float64   `json:"handshake_ms"`
-	CertificatePresent bool      `json:"certificate_present"`
-	HostnameValid     *bool      `json:"hostname_valid"`
-	ChainValid        *bool      `json:"chain_valid"`
-	NotBefore         *time.Time `json:"not_before"`
-	NotAfter          *time.Time `json:"not_after"`
-	DaysRemaining     *float64   `json:"days_remaining"`
-	SubjectName       *string    `json:"subject_name"`
-	IssuerName        *string    `json:"issuer_name"`
-	SerialNumber      *string    `json:"serial_number"`
-	FingerprintSHA256 *string    `json:"fingerprint_sha256"`
+	Port               int        `json:"port"`
+	ServerName         string     `json:"server_name"`
+	ProtocolVersion    *string    `json:"protocol_version"`
+	CipherSuite        *string    `json:"cipher_suite"`
+	HandshakeMS        *float64   `json:"handshake_ms"`
+	CertificatePresent bool       `json:"certificate_present"`
+	HostnameValid      *bool      `json:"hostname_valid"`
+	ChainValid         *bool      `json:"chain_valid"`
+	NotBefore          *time.Time `json:"not_before"`
+	NotAfter           *time.Time `json:"not_after"`
+	DaysRemaining      *float64   `json:"days_remaining"`
+	SubjectName        *string    `json:"subject_name"`
+	IssuerName         *string    `json:"issuer_name"`
+	SerialNumber       *string    `json:"serial_number"`
+	FingerprintSHA256  *string    `json:"fingerprint_sha256"`
 }
 
 type Probe struct {
