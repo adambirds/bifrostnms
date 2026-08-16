@@ -223,6 +223,7 @@ class AgentConfigurationState(RealmOwnedModel):
     desired_revision = fields.BigIntField(default=0)
     desired_content_hash = fields.CharField(max_length=64, default="")
     acknowledged_revision = fields.BigIntField(default=0)
+    acknowledged_content_hash = fields.CharField(max_length=64, default="")
     acknowledged_at = fields.DatetimeField(null=True)
 
 
