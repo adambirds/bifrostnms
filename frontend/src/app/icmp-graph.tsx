@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 
 import {
   buildIcmpSeries,
@@ -92,11 +92,6 @@ function formatPercent(value: number): string {
 
 function formatTick(timestamp: number, durationMs: number): string[] {
   const date = new Date(timestamp)
-  if (durationMs <= 6 * 60 * 60 * 1000) {
-    return [
-      new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date),
-    ]
-  }
   if (durationMs <= 24 * 60 * 60 * 1000) {
     return [
       new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date),
@@ -158,7 +153,6 @@ export function IcmpGraph({
   const startMs = new Date(rangeStart).getTime()
   const endMs = new Date(rangeEnd).getTime()
   const durationMs = Math.max(endMs - startMs, 1)
-
   const allSamples = useMemo(() => points.flatMap((point) => point.rtt_samples_ms), [points])
   const p99 = percentile(allSamples, 0.99) ?? 1
   const absoluteMax = Math.max(1, ...allSamples)
@@ -169,21 +163,27 @@ export function IcmpGraph({
     left + ((new Date(scheduledAt).getTime() - startMs) / durationMs) * plotWidth
   const y = (value: number) =>
     top + plotHeight - (Math.min(value, yMaximum) / yMaximum) * plotHeight
-
   const series = useMemo(() => buildIcmpSeries(points, intervalSeconds), [points, intervalSeconds])
-  const seriesIndex = new Map(series.map((item, index) => [item.agentId, index]))
-  const observationWidth = Math.max(1.25, Math.min(7, (intervalSeconds * 1000 * plotWidth) / durationMs))
+  const observationWidth = Math.max(
+    1.25,
+    Math.min(7, (intervalSeconds * 1000 * plotWidth) / durationMs),
+  )
   const smokeWidth = Math.max(2.4, observationWidth * 1.65)
   const timeTicks = Array.from({ length: 7 }, (_, index) => startMs + (durationMs * index) / 6)
   const yTicks = Array.from({ length: 5 }, (_, index) => (yMaximum * index) / 4).reverse()
-
   const latest = latestByTime(points)
+  const losses = points.map((point) => point.packet_loss_percent)
   const currentLoss = latest?.packet_loss_percent ?? 0
-  const averageLoss = average(points.map((point) => point.packet_loss_percent)) ?? 0
-  const maximumLoss = Math.max(0, ...points.map((point) => point.packet_loss_percent))
+  const minimumLoss = losses.length ? Math.min(...losses) : 0
+  const averageLoss = average(losses) ?? 0
+  const maximumLoss = Math.max(0, ...losses)
   const jitterValues = finite(points.map((point) => point.jitter_ms))
-  const completed = observations.filter((observation) => observation.execution_status === 'completed').length
-  const failed = observations.filter((observation) => observation.execution_status === 'failed').length
+  const completed = observations.filter(
+    (observation) => observation.execution_status === 'completed',
+  ).length
+  const failed = observations.filter(
+    (observation) => observation.execution_status === 'failed',
+  ).length
   const availability = observations.length ? (completed / observations.length) * 100 : 0
 
   const agentSummaries: AgentSummary[] = [...new Set(observations.map((item) => item.agent_id))]
@@ -248,9 +248,15 @@ export function IcmpGraph({
             </strong>
           </div>
           <div className="modern-graph-legend">
-            <span><i className="legend-median" /> Median RTT</span>
-            <span><i className="legend-smoke" /> RTT distribution</span>
-            <span><i className="legend-loss" /> Packet loss</span>
+            <span>
+              <i className="legend-median" /> Median RTT
+            </span>
+            <span>
+              <i className="legend-smoke" /> RTT distribution
+            </span>
+            <span>
+              <i className="legend-loss" /> Packet loss
+            </span>
           </div>
         </div>
 
@@ -269,7 +275,13 @@ export function IcmpGraph({
 
             {yTicks.map((tick) => (
               <g key={tick}>
-                <line className="graph-grid" x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} />
+                <line
+                  className="graph-grid"
+                  x1={left}
+                  x2={width - right}
+                  y1={y(tick)}
+                  y2={y(tick)}
+                />
                 <text className="graph-label graph-y-label" x={left - 12} y={y(tick) + 4}>
                   {Math.round(tick)} ms
                 </text>
@@ -281,12 +293,24 @@ export function IcmpGraph({
               const labels = formatTick(tick, durationMs)
               return (
                 <g key={tick}>
-                  <line className="graph-time-grid" x1={tickX} x2={tickX} y1={top} y2={plotBottom} />
+                  <line
+                    className="graph-time-grid"
+                    x1={tickX}
+                    x2={tickX}
+                    y1={top}
+                    y2={plotBottom}
+                  />
                   {labels.map((label, labelIndex) => (
                     <text
                       className="graph-label graph-time-label"
                       key={label}
-                      textAnchor={index === 0 ? 'start' : index === timeTicks.length - 1 ? 'end' : 'middle'}
+                      textAnchor={
+                        index === 0
+                          ? 'start'
+                          : index === timeTicks.length - 1
+                            ? 'end'
+                            : 'middle'
+                      }
                       x={tickX}
                       y={plotBottom + 27 + labelIndex * 15}
                     >
@@ -304,18 +328,21 @@ export function IcmpGraph({
                 const bucket = Math.round(y(sample) / 3) * 3
                 bins.set(bucket, (bins.get(bucket) ?? 0) + 1)
               }
-              return [...bins.entries()].map(([bucketY, count]) => (
-                <rect
-                  className="smoke-sample"
-                  filter="url(#smokeBlur)"
-                  height={Math.max(5, count * 2.2)}
-                  key={`${point.agent_id}-${point.scheduled_at}-${bucketY}`}
-                  opacity={Math.min(0.62, 0.09 + count * 0.075)}
-                  width={smokeWidth}
-                  x={pointX - smokeWidth / 2}
-                  y={bucketY - Math.max(5, count * 2.2) / 2}
-                />
-              ))
+              return [...bins.entries()].map(([bucketY, count]) => {
+                const smokeHeight = Math.max(5, count * 2.2)
+                return (
+                  <rect
+                    className="smoke-sample"
+                    filter="url(#smokeBlur)"
+                    height={smokeHeight}
+                    key={`${point.agent_id}-${point.scheduled_at}-${bucketY}`}
+                    opacity={Math.min(0.62, 0.09 + count * 0.075)}
+                    width={smokeWidth}
+                    x={pointX - smokeWidth / 2}
+                    y={bucketY - smokeHeight / 2}
+                  />
+                )
+              })
             })}
 
             {series.flatMap((item, index) =>
@@ -335,7 +362,9 @@ export function IcmpGraph({
               }),
             )}
 
-            <text className="graph-section-label" x={left} y={lossTop - 9}>PACKET LOSS</text>
+            <text className="graph-section-label" x={left} y={lossTop - 9}>
+              PACKET LOSS
+            </text>
             {points.map((point) => {
               const pointX = x(point.scheduled_at)
               return (
@@ -352,6 +381,7 @@ export function IcmpGraph({
 
             {points.map((point) => {
               const pointX = x(point.scheduled_at)
+              const hitWidth = Math.max(8, observationWidth * 2)
               return (
                 <rect
                   className="graph-hit-target"
@@ -359,8 +389,8 @@ export function IcmpGraph({
                   key={`hit-${point.agent_id}-${point.scheduled_at}`}
                   onMouseEnter={() => setHovered(point)}
                   onMouseLeave={() => setHovered(null)}
-                  width={Math.max(8, observationWidth * 2)}
-                  x={pointX - Math.max(8, observationWidth * 2) / 2}
+                  width={hitWidth}
+                  x={pointX - hitWidth / 2}
                   y={top}
                 />
               )
@@ -381,13 +411,17 @@ export function IcmpGraph({
             <div
               className="graph-tooltip"
               style={{
-                left: `${Math.min(76, Math.max(8, ((x(hovered.scheduled_at) / width) * 100) - 8))}%`,
+                left: `${Math.min(76, Math.max(8, (x(hovered.scheduled_at) / width) * 100 - 8))}%`,
               }}
             >
               <strong>
                 {new Intl.DateTimeFormat(undefined, {
-                  day: 'numeric', month: 'short', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit', second: '2-digit',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
                 }).format(new Date(hovered.scheduled_at))}
               </strong>
               <span>{agentNames[hovered.agent_id] ?? hovered.agent_id}</span>
@@ -430,7 +464,7 @@ export function IcmpGraph({
           <strong>{formatPercent(currentLoss)}</strong>
           <span className="metric-caption">Now</span>
           <div className="metric-triplet">
-            <span><b>{formatPercent(Math.min(0, currentLoss))}</b><small>Min</small></span>
+            <span><b>{formatPercent(minimumLoss)}</b><small>Min</small></span>
             <span><b>{formatPercent(averageLoss)}</b><small>Avg</small></span>
             <span><b>{formatPercent(maximumLoss)}</b><small>Max</small></span>
           </div>
@@ -449,10 +483,15 @@ export function IcmpGraph({
           <span className="eyebrow">Samples</span>
           <strong>{allSamples.length.toLocaleString()}</strong>
           <span className="metric-caption">Total RTT samples</span>
-          <div className="sample-breakdown"><b>{latest?.packets_sent ?? 0}</b> per probe · <b>{observations.length}</b> probes</div>
+          <div className="sample-breakdown">
+            <b>{latest?.packets_sent ?? 0}</b> per probe · <b>{observations.length}</b> probes
+          </div>
         </article>
         <article className="availability-block">
-          <div className="availability-ring" style={{ '--availability': `${availability * 3.6}deg` } as React.CSSProperties}>
+          <div
+            className="availability-ring"
+            style={{ '--availability': `${availability * 3.6}deg` } as CSSProperties}
+          >
             <strong>{availability.toFixed(availability >= 99.95 ? 0 : 1)}%</strong>
           </div>
           <dl>
@@ -465,7 +504,9 @@ export function IcmpGraph({
       <div className="agent-breakdown-card">
         <div className="agent-breakdown-heading">
           <span className="eyebrow">Agent breakdown</span>
-          <span className="muted">{agentSummaries.length} vantage point{agentSummaries.length === 1 ? '' : 's'}</span>
+          <span className="muted">
+            {agentSummaries.length} vantage point{agentSummaries.length === 1 ? '' : 's'}
+          </span>
         </div>
         <div className="resource-table-wrap agent-breakdown-wrap">
           <table className="resource-table agent-breakdown-table">
@@ -486,15 +527,27 @@ export function IcmpGraph({
               {agentSummaries.map((summary) => (
                 <tr key={summary.agentId}>
                   <td><strong>{summary.name}</strong></td>
-                  <td><span className={`agent-health agent-health-${summary.assessment}`}>{summary.assessment}</span></td>
-                  <td><div className="median-with-sparkline"><span>{formatMs(summary.latest?.median_rtt_ms ?? null)}</span><Sparkline points={summary.sparkline} /></div></td>
+                  <td>
+                    <span className={`agent-health agent-health-${summary.assessment}`}>
+                      {summary.assessment}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="median-with-sparkline">
+                      <span>{formatMs(summary.latest?.median_rtt_ms ?? null)}</span>
+                      <Sparkline points={summary.sparkline} />
+                    </div>
+                  </td>
                   <td>{formatMs(summary.averageRtt)}</td>
                   <td>{formatMs(summary.averageP95)}</td>
                   <td>{formatPercent(summary.averageLoss)}</td>
                   <td>{formatMs(summary.latestJitter)}</td>
                   <td>{summary.samples.toLocaleString()}</td>
                   <td>
-                    <div className="availability-cell"><span>{formatPercent(summary.availability)}</span><i><b style={{ width: `${summary.availability}%` }} /></i></div>
+                    <div className="availability-cell">
+                      <span>{formatPercent(summary.availability)}</span>
+                      <i><b style={{ width: `${summary.availability}%` }} /></i>
+                    </div>
                   </td>
                 </tr>
               ))}
