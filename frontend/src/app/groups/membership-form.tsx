@@ -5,9 +5,14 @@ import { useActionState } from 'react'
 import {
   addAgentGroupMembershipAction,
   addTargetGroupMembershipAction,
-  initialGroupActionState,
+  type GroupActionState,
 } from '@/app/groups/actions'
 import type { Agent, Target } from '@/lib/monitoring'
+
+const initialGroupActionState: GroupActionState = {
+  error: null,
+  success: null,
+}
 
 type MembershipFormProps =
   | { kind: 'agent'; groupId: string; resources: Agent[] }
