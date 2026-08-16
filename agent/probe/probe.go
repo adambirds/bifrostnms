@@ -199,3 +199,15 @@ func DecodeStrict(raw json.RawMessage, destination any) error {
 	}
 	return nil
 }
+
+func DecodeConfigurationStrict[T any](raw json.RawMessage) (T, error) {
+	var configuration T
+	if err := DecodeStrict(raw, &configuration); err != nil {
+		return configuration, err
+	}
+	return configuration, nil
+}
+
+func DecodeConfigurationStrictInto(raw json.RawMessage, destination any) error {
+	return DecodeStrict(raw, destination)
+}
