@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import ValidationError
 from tortoise.exceptions import IntegrityError
 
@@ -33,6 +33,7 @@ from bifrostnms.monitoring import (
     unassign_monitor_from_agent_group,
 )
 from bifrostnms.monitoring.domain import MonitoringDomainError
+from bifrostnms.monitoring.measurements import query_icmp_history
 from bifrostnms.schemas.agent_protocol import (
     AgentCredentialResponse,
     AgentStatusResponse,
@@ -47,6 +48,7 @@ from bifrostnms.schemas.monitoring_api import (
     AgentGroupResponse,
     AgentResponse,
     GroupCreate,
+    IcmpHistoryPoint,
     MonitorAgentAssignmentResponse,
     MonitorAgentGroupAssignmentResponse,
     MonitorCreate,
@@ -272,6 +274,41 @@ async def list_monitors(request: Request) -> list[MonitorResponse]:
     authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
     monitors = await Monitor.filter(realm=authorization.realm, archived_at=None).order_by("name")
     return [MonitorResponse.model_validate(monitor) for monitor in monitors]
+
+
+@router.get("/monitors/{monitor_id}/icmp/history", response_model=list[IcmpHistoryPoint])
+async def get_icmp_history(
+    monitor_id: UUID,
+    request: Request,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    limit: int = Query(default=5000, ge=1, le=5000),
+) -> list[IcmpHistoryPoint]:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    monitor = await Monitor.filter(
+        id=monitor_id, realm=authorization.realm, probe_type="icmp"
+    ).first()
+    if monitor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found")
+    resolved_end = end or datetime.now(UTC)
+    resolved_start = start or resolved_end - timedelta(hours=24)
+    if (
+        resolved_start.tzinfo is None
+        or resolved_end.tzinfo is None
+        or resolved_start >= resolved_end
+        or resolved_end - resolved_start > timedelta(days=30)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="ICMP history range must be positive and no longer than 30 days",
+        )
+    return await query_icmp_history(
+        realm_id=authorization.realm.id,
+        monitor_id=monitor.id,
+        start=resolved_start,
+        end=resolved_end,
+        limit=limit,
+    )
 
 
 @router.post("/monitors", response_model=MonitorResponse, status_code=status.HTTP_201_CREATED)

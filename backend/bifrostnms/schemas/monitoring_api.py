@@ -122,3 +122,19 @@ class MonitorAgentGroupAssignmentResponse(MonitoringResponse):
     monitor_id: UUID
     agent_group_id: UUID
     enabled: bool
+
+
+class IcmpHistoryPoint(BaseModel):
+    scheduled_at: datetime
+    agent_id: UUID
+    assessment: str
+    packets_sent: int
+    packets_received: int
+    packet_loss_percent: float
+    min_rtt_ms: float | None
+    avg_rtt_ms: float | None
+    median_rtt_ms: float | None
+    max_rtt_ms: float | None
+    p95_rtt_ms: float | None
+    jitter_ms: float | None
+    rtt_samples_ms: list[float]

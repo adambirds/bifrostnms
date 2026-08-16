@@ -10,7 +10,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException, Request
-from tortoise import Tortoise
+from tortoise import Tortoise, connections
 
 from bifrostnms.api.monitoring import (
     create_agent,
@@ -27,6 +27,7 @@ from bifrostnms.api.monitoring import (
     delete_monitor_agent_group_assignment,
     delete_target,
     get_agent_status,
+    get_icmp_history,
     list_agents,
     list_monitors,
     list_targets,
@@ -166,6 +167,75 @@ async def test_monitor_creation_validates_typed_configuration(realm: Realm) -> N
                 request(),
             )
         assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_icmp_history_is_realm_scoped_and_preserves_rtt_samples(realm: Realm) -> None:
+    target = await Target.create(realm=realm, name="Router", address="192.0.2.1")
+    monitor = await Monitor.create(
+        realm=realm,
+        target=target,
+        name="Router latency",
+        probe_type=ProbeType.ICMP,
+        interval_seconds=60,
+        timeout_seconds=2,
+        configuration={},
+    )
+    agent = await Agent.create(realm=realm, name="London probe")
+    scheduled_at = datetime.now(UTC) - timedelta(minutes=1)
+    observation_id = uuid4()
+    connection = connections.get("default")
+    try:
+        await connection.execute_query(
+            """
+            INSERT INTO observations (
+                scheduled_at, observation_id, realm_id, agent_id, monitor_id,
+                probe_type, monitor_revision, agent_config_revision,
+                started_at, finished_at, execution_status, assessment
+            ) VALUES ($1, $2, $3, $4, $5, 'icmp', 1, 1, $6, $7, 'completed', 'healthy')
+            """,
+            [
+                scheduled_at,
+                observation_id,
+                realm.id,
+                agent.id,
+                monitor.id,
+                scheduled_at,
+                scheduled_at + timedelta(milliseconds=20),
+            ],
+        )
+        await connection.execute_query(
+            """
+            INSERT INTO icmp_results (
+                scheduled_at, observation_id, realm_id, agent_id, monitor_id,
+                packets_sent, packets_received, packet_loss_percent,
+                min_rtt_ms, avg_rtt_ms, median_rtt_ms, max_rtt_ms,
+                p95_rtt_ms, jitter_ms, rtt_samples_ms
+            ) VALUES ($1, $2, $3, $4, $5, 3, 3, 0, 8, 10, 10, 12, 11.8, 2, $6)
+            """,
+            [scheduled_at, observation_id, realm.id, agent.id, monitor.id, [8, 10, 12]],
+        )
+        with patch("bifrostnms.api.monitoring.require_realm_permission", authorize(realm)):
+            points = await get_icmp_history(
+                monitor.id,
+                request(),
+                start=scheduled_at - timedelta(minutes=1),
+                end=scheduled_at + timedelta(minutes=1),
+                limit=100,
+            )
+        assert len(points) == 1
+        assert points[0].agent_id == agent.id
+        assert points[0].rtt_samples_ms == [8, 10, 12]
+        assert points[0].p95_rtt_ms == 11.8
+    finally:
+        await connection.execute_query(
+            "DELETE FROM icmp_results WHERE scheduled_at = $1 AND observation_id = $2",
+            [scheduled_at, observation_id],
+        )
+        await connection.execute_query(
+            "DELETE FROM observations WHERE scheduled_at = $1 AND observation_id = $2",
+            [scheduled_at, observation_id],
+        )
 
 
 @pytest.mark.asyncio
