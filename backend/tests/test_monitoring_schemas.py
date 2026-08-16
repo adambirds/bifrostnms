@@ -65,11 +65,15 @@ def test_probe_configuration_rejects_future_schema_version() -> None:
 def test_probe_configuration_serialization_is_normalized() -> None:
     assert serialize_probe_configuration(ProbeType.DNS, {"query_name": "Example.COM."}) == {
         "schema_version": 1,
+        "resolver_mode": "system",
+        "resolver_address": None,
+        "resolver_port": 53,
+        "transport": "udp_with_tcp_fallback",
         "query_name": "example.com",
         "query_type": "A",
-        "transport": "udp",
-        "port": 53,
         "recursion_desired": True,
+        "expected_response_codes": ["NOERROR"],
+        "expected_answers": [],
     }
 
 
