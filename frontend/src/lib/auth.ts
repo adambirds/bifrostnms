@@ -1,5 +1,5 @@
-import {cookies} from 'next/headers'
-import {redirect} from 'next/navigation'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 const apiUrl =
   process.env.BIFROST_API_INTERNAL_URL ?? 'http://localhost:8000/api/v1'
@@ -11,7 +11,7 @@ export type CurrentUser = {
   full_name: string
   is_superuser: boolean
   active_realm_id: string | null
-  realms: {id: string; name: string; slug: string; role: string}[]
+  realms: { id: string; name: string; slug: string; role: string }[]
 }
 
 export class ApiRequestError extends Error {
@@ -28,11 +28,11 @@ export async function requireUser(): Promise<CurrentUser> {
   const cookieStore = await cookies()
   const cookieHeader = cookieStore.toString()
   const response = await fetch(`${apiUrl}/auth/me`, {
-    headers: {cookie: cookieHeader},
+    headers: { cookie: cookieHeader },
     cache: 'no-store',
   })
   if (!response.ok) redirect(`${authUrl}/login?next=/`)
-  const data = (await response.json()) as {user: CurrentUser}
+  const data = (await response.json()) as { user: CurrentUser }
   return data.user
 }
 

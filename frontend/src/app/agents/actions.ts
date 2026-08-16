@@ -1,11 +1,11 @@
 'use server'
 
-import {revalidatePath} from 'next/cache'
+import { revalidatePath } from 'next/cache'
 
-import {ApiRequestError, authenticatedApiRequest} from '@/lib/auth'
-import type {Agent} from '@/lib/monitoring'
+import { ApiRequestError, authenticatedApiRequest } from '@/lib/auth'
+import type { Agent } from '@/lib/monitoring'
 
-export type AgentFormState = {error: string | null}
+export type AgentFormState = { error: string | null }
 
 export async function createAgentAction(
   _previousState: AgentFormState,
@@ -14,12 +14,12 @@ export async function createAgentAction(
   const name = String(formData.get('name') ?? '').trim()
   const description = String(formData.get('description') ?? '').trim()
 
-  if (!name) return {error: 'Name is required.'}
+  if (!name) return { error: 'Name is required.' }
 
   try {
     await authenticatedApiRequest<Agent>('/monitoring/agents', {
       method: 'POST',
-      headers: {'content-type': 'application/json'},
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         name,
         description: description || null,
@@ -37,5 +37,5 @@ export async function createAgentAction(
 
   revalidatePath('/')
   revalidatePath('/agents')
-  return {error: null}
+  return { error: null }
 }

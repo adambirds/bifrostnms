@@ -1,11 +1,11 @@
 'use server'
 
-import {revalidatePath} from 'next/cache'
+import { revalidatePath } from 'next/cache'
 
-import {ApiRequestError, authenticatedApiRequest} from '@/lib/auth'
-import type {Target} from '@/lib/monitoring'
+import { ApiRequestError, authenticatedApiRequest } from '@/lib/auth'
+import type { Target } from '@/lib/monitoring'
 
-export type TargetFormState = {error: string | null}
+export type TargetFormState = { error: string | null }
 
 export async function createTargetAction(
   _previousState: TargetFormState,
@@ -16,13 +16,13 @@ export async function createTargetAction(
   const description = String(formData.get('description') ?? '').trim()
 
   if (!name || !address) {
-    return {error: 'Name and address are required.'}
+    return { error: 'Name and address are required.' }
   }
 
   try {
     await authenticatedApiRequest<Target>('/monitoring/targets', {
       method: 'POST',
-      headers: {'content-type': 'application/json'},
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         name,
         address,
@@ -41,5 +41,5 @@ export async function createTargetAction(
 
   revalidatePath('/')
   revalidatePath('/targets')
-  return {error: null}
+  return { error: null }
 }
