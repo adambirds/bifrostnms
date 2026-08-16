@@ -216,7 +216,7 @@ class HttpObservationResult(BaseModel):
 
 class TcpObservationResult(BaseModel):
     port: int = Field(ge=1, le=65535)
-    address_used: str = Field(min_length=2, max_length=45)
+    address_used: str | None = Field(default=None, min_length=2, max_length=45)
     connect_ms: float | None = Field(default=None, ge=0)
 
 

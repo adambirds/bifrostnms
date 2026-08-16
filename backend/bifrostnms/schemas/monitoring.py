@@ -53,6 +53,7 @@ class HttpProbeConfiguration(ProbeConfiguration):
 
 class TcpProbeConfiguration(ProbeConfiguration):
     port: Annotated[int, Field(ge=1, le=65535)]
+    address_family: Literal["auto", "ipv4", "ipv6"] = "auto"
 
 
 class DnsProbeConfiguration(ProbeConfiguration):
