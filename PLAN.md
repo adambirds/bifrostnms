@@ -420,13 +420,18 @@ Acceptance criteria:
 
 ### Stage 2: Operational foundations
 
-**Status: In progress**
+**Status: Implemented**
 
 Objective: provide repeatable development, testing, background work, email and
 deployment foundations without coupling them to unfinished monitoring domains.
 
 Current foundation includes component CI, repository-wide lint/test commands,
 Celery queues, SMTP, Microsoft Graph email and initial Docker images.
+
+Development and backend CI now use a pinned TimescaleDB image, CI applies the
+complete migration chain, and supported service, persistence, secret, backup and
+upgrade boundaries are documented. Final validation depends on the updated
+container CI completing successfully.
 
 Acceptance criteria:
 
