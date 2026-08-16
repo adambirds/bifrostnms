@@ -1,6 +1,7 @@
+import Link from 'next/link'
+
 import { AssignmentForm } from '@/app/monitors/assignment-form'
 import { MonitorForm } from '@/app/monitors/monitor-form'
-import { RemoveAssignmentButton } from '@/app/monitors/remove-assignment-button'
 import { authenticatedApiFetch } from '@/lib/auth'
 import type {
   Agent,
@@ -33,9 +34,9 @@ export default async function MonitorsPage() {
       '/monitoring/monitor-agent-group-assignments',
     ),
   ])
-  const targetNames = new Map(targets.map(target => [target.id, target.name]))
-  const agentNames = new Map(agents.map(agent => [agent.id, agent.name]))
-  const agentGroupNames = new Map(agentGroups.map(group => [group.id, group.name]))
+  const targetNames = new Map(targets.map((target) => [target.id, target.name]))
+  const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
+  const groupNames = new Map(agentGroups.map((group) => [group.id, group.name]))
 
   return (
     <>
@@ -79,18 +80,31 @@ export default async function MonitorsPage() {
                   <th>Schedule</th>
                   <th>Revision</th>
                   <th>Status</th>
-                  <th>Agents</th>
-                  <th>Agent groups</th>
+                  <th>Assignments</th>
+                  <th>Manage</th>
                 </tr>
               </thead>
               <tbody>
-                {monitors.map(monitor => {
-                  const monitorAgents = directAssignments.filter(
-                    assignment => assignment.monitor_id === monitor.id,
+                {monitors.map((monitor) => {
+                  const monitorDirectAssignments = directAssignments.filter(
+                    (assignment) => assignment.monitor_id === monitor.id,
                   )
-                  const monitorGroups = groupAssignments.filter(
-                    assignment => assignment.monitor_id === monitor.id,
+                  const monitorGroupAssignments = groupAssignments.filter(
+                    (assignment) => assignment.monitor_id === monitor.id,
                   )
+                  const availableAgents = agents.filter(
+                    (agent) =>
+                      !monitorDirectAssignments.some(
+                        (assignment) => assignment.agent_id === agent.id,
+                      ),
+                  )
+                  const availableGroups = agentGroups.filter(
+                    (group) =>
+                      !monitorGroupAssignments.some(
+                        (assignment) => assignment.agent_group_id === group.id,
+                      ),
+                  )
+
                   return (
                     <tr key={monitor.id}>
                       <td>
@@ -118,67 +132,66 @@ export default async function MonitorsPage() {
                         </span>
                       </td>
                       <td>
-                        {monitorAgents.length ? (
-                          <ul className="assignment-list">
-                            {monitorAgents.map(assignment => (
-                              <li key={assignment.id}>
-                                <span>
-                                  {agentNames.get(assignment.agent_id) ??
-                                    'Unknown agent'}
-                                </span>
-                                <RemoveAssignmentButton
-                                  kind="agent"
-                                  monitorId={monitor.id}
-                                  resourceId={assignment.agent_id}
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span className="muted">No direct assignments</span>
-                        )}
-                        <AssignmentForm
-                          kind="agent"
-                          monitorId={monitor.id}
-                          resources={agents.filter(
-                            agent =>
-                              !monitorAgents.some(
-                                assignment => assignment.agent_id === agent.id,
-                              ),
-                          )}
-                        />
+                        <div className="assignment-management">
+                          <div>
+                            <strong>Agents</strong>
+                            {monitorDirectAssignments.length ? (
+                              <ul className="compact-list">
+                                {monitorDirectAssignments.map((assignment) => (
+                                  <li key={assignment.id}>
+                                    {agentNames.get(assignment.agent_id) ??
+                                      'Unknown agent'}
+                                    <AssignmentForm
+                                      kind="remove-agent"
+                                      monitorId={monitor.id}
+                                      resourceId={assignment.agent_id}
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span className="muted">None</span>
+                            )}
+                            <AssignmentForm
+                              kind="agent"
+                              monitorId={monitor.id}
+                              resources={availableAgents}
+                            />
+                          </div>
+                          <div>
+                            <strong>Agent groups</strong>
+                            {monitorGroupAssignments.length ? (
+                              <ul className="compact-list">
+                                {monitorGroupAssignments.map((assignment) => (
+                                  <li key={assignment.id}>
+                                    {groupNames.get(assignment.agent_group_id) ??
+                                      'Unknown group'}
+                                    <AssignmentForm
+                                      kind="remove-group"
+                                      monitorId={monitor.id}
+                                      resourceId={assignment.agent_group_id}
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span className="muted">None</span>
+                            )}
+                            <AssignmentForm
+                              kind="group"
+                              monitorId={monitor.id}
+                              resources={availableGroups}
+                            />
+                          </div>
+                        </div>
                       </td>
                       <td>
-                        {monitorGroups.length ? (
-                          <ul className="assignment-list">
-                            {monitorGroups.map(assignment => (
-                              <li key={assignment.id}>
-                                <span>
-                                  {agentGroupNames.get(assignment.agent_group_id) ??
-                                    'Unknown group'}
-                                </span>
-                                <RemoveAssignmentButton
-                                  kind="group"
-                                  monitorId={monitor.id}
-                                  resourceId={assignment.agent_group_id}
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span className="muted">No group assignments</span>
-                        )}
-                        <AssignmentForm
-                          kind="group"
-                          monitorId={monitor.id}
-                          resources={agentGroups.filter(
-                            group =>
-                              !monitorGroups.some(
-                                assignment =>
-                                  assignment.agent_group_id === group.id,
-                              ),
-                          )}
-                        />
+                        <Link
+                          className="secondary compact-action"
+                          href={`/monitors/${monitor.id}/edit`}
+                        >
+                          Edit
+                        </Link>
                       </td>
                     </tr>
                   )

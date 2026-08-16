@@ -9,20 +9,21 @@ import {
 } from '@/lib/monitor-form'
 import type { Monitor, ProbeType } from '@/lib/monitoring'
 
-export type MonitorFormState = {
+export type MonitorEditState = {
   error: string | null
   success: string | null
 }
 
-export const initialMonitorFormState: MonitorFormState = {
+export const initialMonitorEditState: MonitorEditState = {
   error: null,
   success: null,
 }
 
-export async function createMonitorAction(
-  previousState: MonitorFormState,
+export async function updateMonitorAction(
+  monitorId: string,
+  previousState: MonitorEditState,
   formData: FormData,
-): Promise<MonitorFormState> {
+): Promise<MonitorEditState> {
   void previousState
 
   const name = String(formData.get('name') ?? '').trim()
@@ -38,8 +39,8 @@ export async function createMonitorAction(
   const probeType = rawProbeType as ProbeType
 
   try {
-    await authenticatedApiRequest<Monitor>('/monitoring/monitors', {
-      method: 'POST',
+    await authenticatedApiRequest<Monitor>(`/monitoring/monitors/${monitorId}`, {
+      method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         target_id: targetId,
@@ -56,12 +57,13 @@ export async function createMonitorAction(
       error:
         error instanceof ApiRequestError
           ? error.message
-          : 'The monitor could not be created.',
+          : 'The monitor could not be updated.',
       success: null,
     }
   }
 
   revalidatePath('/')
   revalidatePath('/monitors')
-  return { error: null, success: 'Monitor created.' }
+  revalidatePath(`/monitors/${monitorId}/edit`)
+  return { error: null, success: 'Monitor updated.' }
 }
