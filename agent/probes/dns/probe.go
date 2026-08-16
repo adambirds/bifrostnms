@@ -25,17 +25,17 @@ type Answer struct {
 }
 
 type Result struct {
-	ResolverAddress *string  `json:"resolver_address"`
-	QueryName       string   `json:"query_name"`
-	QueryType       string   `json:"query_type"`
-	ResponseCode    *string  `json:"response_code"`
-	ResponseMS      *float64 `json:"response_ms"`
-	AnswerCount     int      `json:"answer_count"`
-	Answers         []Answer `json:"answers"`
-	Truncated       bool     `json:"truncated"`
-	Authoritative   bool     `json:"authoritative"`
-	AssertionsTotal int      `json:"assertions_total"`
-	AssertionsFailed int     `json:"assertions_failed"`
+	ResolverAddress  *string  `json:"resolver_address"`
+	QueryName        string   `json:"query_name"`
+	QueryType        string   `json:"query_type"`
+	ResponseCode     *string  `json:"response_code"`
+	ResponseMS       *float64 `json:"response_ms"`
+	AnswerCount      int      `json:"answer_count"`
+	Answers          []Answer `json:"answers"`
+	Truncated        bool     `json:"truncated"`
+	Authoritative    bool     `json:"authoritative"`
+	AssertionsTotal  int      `json:"assertions_total"`
+	AssertionsFailed int      `json:"assertions_failed"`
 }
 
 type Probe struct {
