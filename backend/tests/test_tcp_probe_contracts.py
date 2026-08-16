@@ -2,14 +2,17 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pydantic import TypeAdapter
+
 from bifrostnms.schemas.agent_protocol import TcpObservationResult
 from bifrostnms.schemas.monitoring import TcpProbeConfiguration
 
 CONTRACT_ROOT = Path(__file__).parents[2] / "contracts" / "probes" / "v1"
+CONTRACT_ADAPTER = TypeAdapter(dict[str, Any])
 
 
 def load_contract(name: str) -> dict[str, Any]:
-    return json.loads((CONTRACT_ROOT / name).read_text())
+    return CONTRACT_ADAPTER.validate_python(json.loads((CONTRACT_ROOT / name).read_text()))
 
 
 def test_tcp_configuration_matches_shared_contract() -> None:
