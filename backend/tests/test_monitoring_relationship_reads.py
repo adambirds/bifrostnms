@@ -97,8 +97,12 @@ async def test_relationship_lists_return_realm_resources(realm: Realm) -> None:
         agent_group=agent_group,
     )
 
-    with patch("bifrostnms.api.monitoring_relationships.require_realm_permission", authorize(realm)):
-        assert [item.id for item in await list_agent_group_memberships(request())] == [membership.id]
+    with patch(
+        "bifrostnms.api.monitoring_relationships.require_realm_permission", authorize(realm)
+    ):
+        assert [item.id for item in await list_agent_group_memberships(request())] == [
+            membership.id
+        ]
         assert [item.id for item in await list_target_group_memberships(request())] == [
             target_membership.id
         ]
