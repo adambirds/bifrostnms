@@ -28,12 +28,12 @@ const (
 )
 
 type Configuration struct {
-	SchemaVersion      uint32            `json:"schema_version"`
-	Port               int               `json:"port"`
-	ServerName         *string           `json:"server_name"`
-	AddressFamily      AddressFamily     `json:"address_family"`
-	MinimumTLSVersion  MinimumTLSVersion `json:"minimum_tls_version"`
-	ExpiryWarningDays  int               `json:"expiry_warning_days"`
+	SchemaVersion     uint32            `json:"schema_version"`
+	Port              int               `json:"port"`
+	ServerName        *string           `json:"server_name"`
+	AddressFamily     AddressFamily     `json:"address_family"`
+	MinimumTLSVersion MinimumTLSVersion `json:"minimum_tls_version"`
+	ExpiryWarningDays *int              `json:"expiry_warning_days"`
 }
 
 func DecodeConfiguration(raw json.RawMessage) (Configuration, error) {
@@ -70,10 +70,11 @@ func DecodeConfiguration(raw json.RawMessage) (Configuration, error) {
 	if configuration.MinimumTLSVersion != MinimumTLS12 && configuration.MinimumTLSVersion != MinimumTLS13 {
 		return Configuration{}, errors.New("TLS minimum version is invalid")
 	}
-	if configuration.ExpiryWarningDays == 0 {
-		configuration.ExpiryWarningDays = 30
+	if configuration.ExpiryWarningDays == nil {
+		defaultWarningDays := 30
+		configuration.ExpiryWarningDays = &defaultWarningDays
 	}
-	if configuration.ExpiryWarningDays < 0 || configuration.ExpiryWarningDays > 3650 {
+	if *configuration.ExpiryWarningDays < 0 || *configuration.ExpiryWarningDays > 3650 {
 		return Configuration{}, errors.New("TLS expiry warning days is outside the valid range")
 	}
 	return configuration, nil
