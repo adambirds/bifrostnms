@@ -3,11 +3,16 @@
 import { useActionState, useState } from 'react'
 
 import {
-  initialAgentEnrolmentState,
   issueAgentEnrolmentAction,
+  type AgentEnrolmentState,
 } from '@/app/agents/actions'
 
 import styles from './enrolment-control.module.css'
+
+const initialAgentEnrolmentState: AgentEnrolmentState = {
+  error: null,
+  token: null,
+}
 
 export function EnrolmentControl({ agentId }: { agentId: string }) {
   const action = issueAgentEnrolmentAction.bind(null, agentId)
