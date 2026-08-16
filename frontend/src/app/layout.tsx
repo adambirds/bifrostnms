@@ -1,8 +1,9 @@
-import type {Metadata} from 'next'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import {requireUser} from '@/lib/auth'
+import { requireUser } from '@/lib/auth'
 
+import './dashboard.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -14,10 +15,10 @@ const authUrl = process.env.NEXT_PUBLIC_AUTH_URL ?? 'http://localhost:3001'
 
 export default async function RootLayout({
   children,
-}: Readonly<{children: React.ReactNode}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   const user = await requireUser()
   const realm =
-    user.realms.find(item => item.id === user.active_realm_id) ?? user.realms[0]
+    user.realms.find((item) => item.id === user.active_realm_id) ?? user.realms[0]
 
   return (
     <html lang="en">
