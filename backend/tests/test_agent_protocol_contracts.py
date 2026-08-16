@@ -9,6 +9,7 @@ from bifrostnms.schemas.agent_protocol import (
     AgentConfigurationResponse,
     AgentEnrolmentRequest,
     AgentHeartbeatRequest,
+    AgentObservationUpload,
 )
 
 CONTRACT_ROOT = Path(__file__).parents[2] / "contracts" / "agent" / "v1"
@@ -20,6 +21,7 @@ CONTRACT_ROOT = Path(__file__).parents[2] / "contracts" / "agent" / "v1"
         ("enrolment_request.json", AgentEnrolmentRequest),
         ("heartbeat_request.json", AgentHeartbeatRequest),
         ("configuration_response.json", AgentConfigurationResponse),
+        ("observation_upload.json", AgentObservationUpload),
     ],
 )
 def test_python_models_accept_shared_agent_contracts(

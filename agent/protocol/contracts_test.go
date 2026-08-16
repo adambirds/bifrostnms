@@ -42,3 +42,12 @@ func TestConfigurationResponseContract(t *testing.T) {
 		t.Fatalf("unexpected configuration contract: %#v", response)
 	}
 }
+
+func TestObservationUploadContract(t *testing.T) {
+	var upload ObservationUpload
+	readContract(t, "observation_upload.json", &upload)
+	if upload.ProtocolVersion != Version || upload.AgentConfigRevision != 7 ||
+		len(upload.Observations) != 1 {
+		t.Fatalf("unexpected observation upload contract: %#v", upload)
+	}
+}
