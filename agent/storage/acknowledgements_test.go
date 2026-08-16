@@ -61,6 +61,34 @@ func TestAcknowledgementsApplyMixedResultsAtomically(t *testing.T) {
 	}
 }
 
+func TestAcknowledgementAcceptsServerMicrosecondPrecision(t *testing.T) {
+	store, _ := openTestStore(t)
+	ctx := context.Background()
+	now := time.Date(2026, 8, 16, 14, 0, 0, 0, time.UTC)
+	observation := testObservation(1)
+	observation.ScheduledAt = time.Date(2026, 8, 16, 14, 0, 0, 123456789, time.UTC)
+	if err := store.EnqueueObservation(ctx, observation, DefaultQueueLimits()); err != nil {
+		t.Fatalf("enqueue observation: %v", err)
+	}
+	acknowledgements := []ObservationAcknowledgement{{
+		ScheduledAt:   observation.ScheduledAt.Truncate(time.Microsecond),
+		ObservationID: observation.ObservationID,
+		Disposition:   DispositionAccepted,
+	}}
+	if err := store.ApplyAcknowledgements(
+		ctx, []Observation{observation}, acknowledgements, now,
+	); err != nil {
+		t.Fatalf("apply microsecond acknowledgement: %v", err)
+	}
+	stats, err := store.QueueStats(ctx)
+	if err != nil {
+		t.Fatalf("queue statistics: %v", err)
+	}
+	if stats.PendingCount != 0 {
+		t.Fatalf("acknowledged observation remained queued: %#v", stats)
+	}
+}
+
 func TestMalformedAcknowledgementPerformsNoCleanup(t *testing.T) {
 	store, _ := openTestStore(t)
 	ctx := context.Background()
