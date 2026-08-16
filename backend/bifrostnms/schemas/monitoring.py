@@ -211,7 +211,27 @@ class DnsProbeConfiguration(ProbeConfiguration):
 class TlsProbeConfiguration(ProbeConfiguration):
     port: Annotated[int, Field(ge=1, le=65535)] = 443
     server_name: Annotated[str, Field(min_length=1, max_length=253)] | None = None
-    verify_certificate: bool = True
+    address_family: Literal["auto", "ipv4", "ipv6"] = "auto"
+    minimum_tls_version: Literal["1.2", "1.3"] = "1.2"
+    expiry_warning_days: Annotated[int, Field(ge=0, le=3650)] = 30
+
+    @field_validator("server_name")
+    @classmethod
+    def normalize_server_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().rstrip(".").lower()
+        labels = normalized.split(".")
+        if any(
+            not label
+            or len(label) > 63
+            or label.startswith("-")
+            or label.endswith("-")
+            or re.fullmatch(r"[A-Za-z0-9-]+", label) is None
+            for label in labels
+        ):
+            raise ValueError("server_name must be a valid hostname")
+        return normalized
 
 
 type TypedProbeConfiguration = (
