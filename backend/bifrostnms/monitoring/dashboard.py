@@ -319,37 +319,22 @@ _HISTORY_QUERY = """
         ON observation.probe_type = 'icmp'
         AND icmp_result.scheduled_at = observation.scheduled_at
         AND icmp_result.observation_id = observation.observation_id
-        AND icmp_result.realm_id = observation.realm_id
-        AND icmp_result.agent_id = observation.agent_id
-        AND icmp_result.monitor_id = observation.monitor_id
     LEFT JOIN http_results AS http_result
         ON observation.probe_type = 'http'
         AND http_result.scheduled_at = observation.scheduled_at
         AND http_result.observation_id = observation.observation_id
-        AND http_result.realm_id = observation.realm_id
-        AND http_result.agent_id = observation.agent_id
-        AND http_result.monitor_id = observation.monitor_id
     LEFT JOIN tcp_results AS tcp_result
         ON observation.probe_type = 'tcp'
         AND tcp_result.scheduled_at = observation.scheduled_at
         AND tcp_result.observation_id = observation.observation_id
-        AND tcp_result.realm_id = observation.realm_id
-        AND tcp_result.agent_id = observation.agent_id
-        AND tcp_result.monitor_id = observation.monitor_id
     LEFT JOIN dns_results AS dns_result
         ON observation.probe_type = 'dns'
         AND dns_result.scheduled_at = observation.scheduled_at
         AND dns_result.observation_id = observation.observation_id
-        AND dns_result.realm_id = observation.realm_id
-        AND dns_result.agent_id = observation.agent_id
-        AND dns_result.monitor_id = observation.monitor_id
     LEFT JOIN tls_results AS tls_result
         ON observation.probe_type = 'tls'
         AND tls_result.scheduled_at = observation.scheduled_at
         AND tls_result.observation_id = observation.observation_id
-        AND tls_result.realm_id = observation.realm_id
-        AND tls_result.agent_id = observation.agent_id
-        AND tls_result.monitor_id = observation.monitor_id
     WHERE observation.realm_id = $1
       AND observation.monitor_id = $2
       AND observation.probe_type = $3
