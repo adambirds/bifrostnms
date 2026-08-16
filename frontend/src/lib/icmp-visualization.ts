@@ -30,7 +30,8 @@ export function buildIcmpSeries(
     .map(([agentId, agentPoints]) => {
       const sorted = [...agentPoints].sort(
         (left, right) =>
-          new Date(left.scheduled_at).getTime() - new Date(right.scheduled_at).getTime(),
+          new Date(left.scheduled_at).getTime() -
+          new Date(right.scheduled_at).getTime(),
       )
       const segments: IcmpVisualizationPoint[][] = []
       for (const point of sorted) {
