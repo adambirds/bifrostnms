@@ -10,19 +10,26 @@ from tortoise import connections
 from bifrostnms.config import Settings
 from bifrostnms.models import Monitor, ProbeType
 from bifrostnms.schemas.dashboard import (
+    Assessment,
+    AvailabilityState,
     DnsProbeResult,
+    ExecutionStatus,
     HttpProbeResult,
     IcmpProbeResult,
     MonitorAgentState,
+    MonitorHeadline,
     MonitorStateSummary,
     ObservationSummary,
     ProbeHistoryPoint,
+    ProbeResult,
     TcpProbeResult,
     TlsProbeResult,
 )
 
 
-def _availability_state(row: dict[str, Any], *, now: datetime, settings: Settings) -> str:
+def _availability_state(
+    row: dict[str, Any], *, now: datetime, settings: Settings
+) -> AvailabilityState:
     desired_revision = int(row.get("desired_revision") or 0)
     acknowledged_revision = int(row.get("acknowledged_revision") or 0)
     if desired_revision == 0 or acknowledged_revision < desired_revision:
@@ -73,7 +80,7 @@ def _availability_state(row: dict[str, Any], *, now: datetime, settings: Setting
     return "probe_error"
 
 
-def _headline(states: list[MonitorAgentState]) -> str:
+def _headline(states: list[MonitorAgentState]) -> MonitorHeadline:
     if not states:
         return "disabled"
     healthy = sum(item.availability_state == "healthy" for item in states)
@@ -214,8 +221,8 @@ async def query_monitor_states(
                 agent_id=UUID(str(row["agent_id"])),
                 agent_name=str(row["agent_name"]),
                 probe_type=ProbeType(str(row["probe_type"])),
-                availability_state=cast(
-                    Any, _availability_state(row, now=resolved_now, settings=settings)
+                availability_state=_availability_state(
+                    row, now=resolved_now, settings=settings
                 ),
                 desired_config_revision=int(row.get("desired_revision") or 0),
                 acknowledged_config_revision=int(row.get("acknowledged_revision") or 0),
@@ -226,8 +233,8 @@ async def query_monitor_states(
                 ),
                 last_scheduled_at=cast(datetime | None, row.get("last_scheduled_at")),
                 last_received_at=cast(datetime | None, row.get("last_received_at")),
-                execution_status=cast(Any, row.get("execution_status")),
-                assessment=cast(Any, row.get("assessment")),
+                execution_status=cast(ExecutionStatus | None, row.get("execution_status")),
+                assessment=cast(Assessment | None, row.get("assessment")),
             )
         )
 
@@ -250,7 +257,7 @@ async def query_monitor_states(
                 target_id=monitor.target_id,
                 target_name=monitor.target.name,
                 probe_type=monitor.probe_type,
-                headline=cast(Any, _headline(states)),
+                headline=_headline(states),
                 effective_agents=total,
                 healthy_agents=healthy_agents,
                 unhealthy_agents=unhealthy_agents,
@@ -365,7 +372,7 @@ _HISTORY_SELECTS: dict[ProbeType, tuple[str, str]] = {
 }
 
 
-def _typed_result(probe_type: ProbeType, row: dict[str, Any]) -> Any | None:
+def _typed_result(probe_type: ProbeType, row: dict[str, Any]) -> ProbeResult | None:
     if probe_type == ProbeType.ICMP:
         if row.get("packets_sent") is None:
             return None
@@ -387,6 +394,23 @@ def _typed_result(probe_type: ProbeType, row: dict[str, Any]) -> Any | None:
     return TlsProbeResult.model_validate(row)
 
 
+def _history_point(probe_type: ProbeType, row: dict[str, Any]) -> ProbeHistoryPoint:
+    return ProbeHistoryPoint(
+        observation_id=UUID(str(row["observation_id"])),
+        scheduled_at=cast(datetime, row["scheduled_at"]),
+        received_at=cast(datetime, row["received_at"]),
+        monitor_id=UUID(str(row["monitor_id"])),
+        agent_id=UUID(str(row["agent_id"])),
+        probe_type=ProbeType(str(row["probe_type"])),
+        execution_status=cast(ExecutionStatus, row["execution_status"]),
+        assessment=cast(Assessment, row["assessment"]),
+        error_category=cast(str | None, row.get("error_category")),
+        error_code=cast(str | None, row.get("error_code")),
+        error_message=cast(str | None, row.get("error_message")),
+        result=_typed_result(probe_type, row),
+    )
+
+
 async def query_probe_history(
     *,
     realm_id: UUID,
@@ -398,7 +422,9 @@ async def query_probe_history(
 ) -> list[ProbeHistoryPoint]:
     table, result_columns = _HISTORY_SELECTS[probe_type]
     connection = connections.get("default")
-    rows = await connection.execute_query_dict(
+    # The only interpolated values are compile-time table/column fragments selected
+    # from the ProbeType enum above. All request-derived values remain parameters.
+    rows = await connection.execute_query_dict(  # noqa: S608
         f"""
         SELECT
             observation.observation_id,
@@ -430,22 +456,4 @@ async def query_probe_history(
         """,
         [realm_id, monitor_id, str(probe_type), start, end, limit],
     )
-    history: list[ProbeHistoryPoint] = []
-    for row in rows:
-        history.append(
-            ProbeHistoryPoint(
-                observation_id=UUID(str(row["observation_id"])),
-                scheduled_at=cast(datetime, row["scheduled_at"]),
-                received_at=cast(datetime, row["received_at"]),
-                monitor_id=UUID(str(row["monitor_id"])),
-                agent_id=UUID(str(row["agent_id"])),
-                probe_type=ProbeType(str(row["probe_type"])),
-                execution_status=cast(Any, row["execution_status"]),
-                assessment=cast(Any, row["assessment"]),
-                error_category=cast(str | None, row.get("error_category")),
-                error_code=cast(str | None, row.get("error_code")),
-                error_message=cast(str | None, row.get("error_message")),
-                result=_typed_result(probe_type, row),
-            )
-        )
-    return history
+    return [_history_point(probe_type, row) for row in rows]
