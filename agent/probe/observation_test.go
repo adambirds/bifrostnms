@@ -7,7 +7,7 @@ import (
 )
 
 func TestObservationSerializationProducesBoundedTypedEnvelope(t *testing.T) {
-	scheduledAt := time.Date(2026, 8, 16, 21, 0, 0, 123, time.UTC)
+	scheduledAt := time.Date(2026, 8, 16, 21, 0, 0, 123456789, time.UTC)
 	request := Request{
 		ObservationID: "00000000-0000-4000-8000-000000000001",
 		ScheduledAt:   scheduledAt, AgentConfigRevision: 3,
@@ -30,6 +30,9 @@ func TestObservationSerializationProducesBoundedTypedEnvelope(t *testing.T) {
 	if content["probe_type"] != "tcp" || content["execution_status"] != "completed" ||
 		content["agent_clock_offset_ms"] != float64(12) {
 		t.Fatalf("observation content = %#v", content)
+	}
+	if content["scheduled_at"] != "2026-08-16T21:00:00.123456Z" {
+		t.Fatalf("scheduled_at = %q", content["scheduled_at"])
 	}
 	if _, present := content["target_address"]; present {
 		t.Fatal("observation leaked target configuration")
