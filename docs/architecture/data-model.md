@@ -482,4 +482,5 @@ Every persistent change requires a reviewed Tortoise migration. Do not use
   are defined in `measurements.md`.
 - Agent clock-skew and timestamp behavior is shared across `measurements.md`,
   `agent-protocol.md` and `sync.md`.
-- Health derivation from observations, heartbeats and missing data.
+- Health derivation from observations, heartbeats and missing data is defined in
+  `health.md`.

@@ -659,7 +659,6 @@ implicitly approved merely because it appears in this list.
 Stage 0 must resolve at least these questions before dependent implementation:
 
 - Historical behavior when targets, monitors, agents or realms are deleted.
-- Health-state derivation and missing-data semantics.
 
 The observation schema, raw/aggregate relationship and initial TimescaleDB
 strategy are settled in `docs/architecture/measurements.md`.
@@ -668,6 +667,9 @@ Agent credentials, configuration delivery, capability negotiation, local SQLite
 storage, synchronization and acknowledgement behavior are settled across
 `docs/architecture/agent-protocol.md`, `docs/architecture/agent-storage.md` and
 `docs/architecture/sync.md`.
+
+Health-state derivation, cross-agent aggregation, coverage and missing-data
+semantics are settled in `docs/architecture/health.md`.
 
 ## Decision record
 
