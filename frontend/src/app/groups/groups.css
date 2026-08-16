@@ -34,6 +34,35 @@
   color: #6ce6bd;
 }
 
+.relationship-list {
+  display: grid;
+  min-width: 180px;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.relationship-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.relationship-remove-form {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.relationship-remove-form button {
+  padding: 0.35rem 0.55rem;
+  border-color: #5f2d39;
+  background: #3d1d27;
+  font-size: 0.8rem;
+}
+
 @media (width <= 1100px) {
   .group-columns {
     grid-template-columns: 1fr;
