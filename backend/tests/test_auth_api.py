@@ -7,11 +7,29 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import HTTPException, Request, Response
 
-from bifrostnms.api.auth import activate_realm, login, logout, me, serialize_user, signup
+from bifrostnms.api.auth import (
+    activate_realm,
+    confirm_email_verification,
+    confirm_password_reset,
+    forgot_password,
+    login,
+    logout,
+    me,
+    request_email_verification,
+    serialize_user,
+    signup,
+)
 from bifrostnms.api.security import security_summary
 from bifrostnms.auth.security import SessionData
 from bifrostnms.models import Realm, User
-from bifrostnms.schemas.auth import LoginRequest, SignupRequest, UserResponse
+from bifrostnms.schemas.auth import (
+    EmailRequest,
+    LoginRequest,
+    PasswordResetRequest,
+    SignupRequest,
+    TokenRequest,
+    UserResponse,
+)
 
 
 def request() -> Request:
@@ -31,6 +49,7 @@ def account(*, is_active: bool = True, is_superuser: bool = False) -> User:
             email_verified=False,
             is_active=is_active,
             is_superuser=is_superuser,
+            session_version=1,
         ),
     )
 
@@ -58,6 +77,74 @@ def queryset_with_first(value: object) -> MagicMock:
     queryset.first = AsyncMock(return_value=value)
     queryset.select_related.return_value = queryset
     return queryset
+
+
+@pytest.mark.asyncio
+async def test_request_email_verification_sends_token_for_unverified_user() -> None:
+    user = account()
+    with (
+        patch(
+            "bifrostnms.api.auth.get_session_user",
+            new=AsyncMock(return_value=(user, session())),
+        ),
+        patch(
+            "bifrostnms.api.auth.create_verification_token",
+            new=AsyncMock(return_value="token"),
+        ),
+        patch("bifrostnms.api.auth._send_account_email") as email_mock,
+    ):
+        result = await request_email_verification(request())
+
+    assert result == {"detail": "Verification email requested"}
+    assert email_mock.call_args.kwargs["token"] == "token"
+
+
+@pytest.mark.asyncio
+async def test_confirm_email_verification_rejects_invalid_token() -> None:
+    with (
+        patch("bifrostnms.api.auth.verify_email_token", new=AsyncMock(return_value=None)),
+        pytest.raises(HTTPException, match="Invalid or expired token") as exc,
+    ):
+        await confirm_email_verification(TokenRequest(token="x" * 32))
+
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_does_not_reveal_missing_account() -> None:
+    with patch("bifrostnms.api.auth.User.filter", return_value=queryset_with_first(None)):
+        result = await forgot_password(EmailRequest(email="missing@example.com"))
+
+    assert result == {"detail": "If the account exists, a reset email has been sent"}
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_sends_token_for_active_account() -> None:
+    user = account()
+    with (
+        patch("bifrostnms.api.auth.User.filter", return_value=queryset_with_first(user)),
+        patch(
+            "bifrostnms.api.auth.create_password_reset_token",
+            new=AsyncMock(return_value="token"),
+        ),
+        patch("bifrostnms.api.auth._send_account_email") as email_mock,
+    ):
+        await forgot_password(EmailRequest(email="USER@example.com"))
+
+    assert email_mock.call_args.kwargs["token"] == "token"
+
+
+@pytest.mark.asyncio
+async def test_confirm_password_reset_accepts_valid_token() -> None:
+    with patch(
+        "bifrostnms.api.auth.reset_password", new=AsyncMock(return_value=account())
+    ) as reset_mock:
+        result = await confirm_password_reset(
+            PasswordResetRequest(token="x" * 32, password="new-secure-password")
+        )
+
+    assert result == {"detail": "Password reset"}
+    reset_mock.assert_awaited_once_with("x" * 32, "new-secure-password")
 
 
 @pytest.mark.asyncio
@@ -133,6 +220,11 @@ async def test_signup_creates_unique_realm_and_session() -> None:
             "bifrostnms.api.auth.Realm.create", new=AsyncMock(return_value=realm)
         ) as create_realm,
         patch("bifrostnms.api.auth.RealmMembership.create", new=AsyncMock()) as create_member,
+        patch(
+            "bifrostnms.api.auth.create_verification_token",
+            new=AsyncMock(return_value="verification-token"),
+        ),
+        patch("bifrostnms.api.auth._send_account_email") as email_mock,
         patch("bifrostnms.api.auth.create_session", new=AsyncMock(return_value=auth_session)),
         patch("bifrostnms.api.auth.serialize_user", new=AsyncMock(return_value=result_user)),
     ):
@@ -143,6 +235,7 @@ async def test_signup_creates_unique_realm_and_session() -> None:
     assert create_user.await_args.kwargs["first_name"] == "Test"
     create_realm.assert_awaited_once_with(name="Home Lab", slug="home-lab-2")
     create_member.assert_awaited_once_with(user=user, realm=realm, role="owner")
+    assert email_mock.call_args.kwargs["token"] == "verification-token"
 
 
 @pytest.mark.asyncio

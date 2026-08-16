@@ -38,7 +38,7 @@ def make_request(*, cookie: str | None = None) -> Request:
 
 @pytest.mark.asyncio
 async def test_create_session_persists_to_redis_and_sets_cookie() -> None:
-    user = cast(User, SimpleNamespace(id=uuid4(), is_superuser=False))
+    user = cast(User, SimpleNamespace(id=uuid4(), is_superuser=False, session_version=1))
     realm_id = uuid4()
     redis = AsyncMock()
     settings = SimpleNamespace(
@@ -183,7 +183,7 @@ async def test_get_session_user_deletes_session_for_missing_user() -> None:
 
 @pytest.mark.asyncio
 async def test_get_session_user_refreshes_valid_session() -> None:
-    user = cast(User, SimpleNamespace(id=uuid4()))
+    user = cast(User, SimpleNamespace(id=uuid4(), session_version=1))
     stored = SessionData(
         user_id=user.id,
         active_realm_id=None,
@@ -213,6 +213,38 @@ async def test_get_session_user_refreshes_valid_session() -> None:
     assert result_user is user
     assert result_session.user_id == user.id
     redis.set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_session_user_rejects_old_session_version() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4(), session_version=2))
+    stored = SessionData(
+        user_id=user.id,
+        active_realm_id=None,
+        auth_method="password",
+        created_at=datetime.now(UTC),
+        last_activity=datetime.now(UTC),
+        user_agent="pytest",
+        ip_address=None,
+        redis_key="unused",
+        user_session_version=1,
+    )
+    redis = AsyncMock()
+    redis.get.return_value = stored.to_json()
+    users = MagicMock()
+    users.first = AsyncMock(return_value=user)
+    settings = SimpleNamespace(
+        session_cookie_name="bifrost_session", session_key_prefix="bifrostnms:session:"
+    )
+    with (
+        patch("bifrostnms.auth.security.get_settings", return_value=settings),
+        patch("bifrostnms.auth.security.get_redis", return_value=redis),
+        patch("bifrostnms.auth.security.User.filter", return_value=users),
+        pytest.raises(HTTPException, match="Session expired"),
+    ):
+        await get_session_user(make_request(cookie="token"))
+
+    redis.delete.assert_awaited_once()
 
 
 @pytest.mark.asyncio

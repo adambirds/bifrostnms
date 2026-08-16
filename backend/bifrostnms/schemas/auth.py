@@ -17,6 +17,18 @@ class SignupRequest(BaseModel):
     realm_name: str | None = Field(default=None, max_length=200)
 
 
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+
+class TokenRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=256)
+
+
+class PasswordResetRequest(TokenRequest):
+    password: str = Field(min_length=12, max_length=256)
+
+
 class RealmSummary(BaseModel):
     id: UUID
     name: str

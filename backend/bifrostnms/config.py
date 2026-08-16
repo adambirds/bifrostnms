@@ -31,6 +31,9 @@ class Settings(BaseSettings):
 
     # Development default only. Production deployments must provide a long random value.
     auth_encryption_key: str = "development-only-change-me"
+    auth_frontend_url: str = "http://localhost:3001"
+    email_verification_ttl_hours: int = 24
+    password_reset_ttl_minutes: int = 30
 
     # WebAuthn relying-party configuration. Passkeys require a secure context in production.
     webauthn_rp_id: str = "localhost"
