@@ -11,6 +11,9 @@ The authentication frontend provides:
 - `/login` - password, passkey and 2FA/recovery-code sign-in flow;
 - `/signup` - account creation;
 - `/logout` - session termination;
+- `/forgot-password` - non-enumerating password-reset request;
+- `/reset-password` - password reset from an emailed one-time link;
+- `/verify-email` - email confirmation from an emailed one-time link;
 - `/account` - authenticated account overview;
 - `/security` - authenticated TOTP, recovery-code and passkey management.
 
@@ -94,6 +97,29 @@ Code that requires installation-wide privileges should use `backend/bifrostnms/a
 
 Passwords are hashed with `pwdlib` using its recommended Argon2 configuration. Password hashes are stored in PostgreSQL. Plaintext passwords are never stored.
 
+## Email verification and password recovery
+
+Signup creates an email-verification challenge and sends its link through the
+configured Celery email queue. Authenticated users may request another link from
+the account page. Password-reset requests always return the same accepted
+response, including for unknown or disabled accounts, so the endpoint does not
+disclose whether an address is registered.
+
+Both flows use cryptographically random, expiring, single-use tokens. Only a
+SHA-256 token hash is stored in PostgreSQL. Issuing another token consumes older
+outstanding tokens of the same type. Verification links expire after
+`BIFROSTNMS_EMAIL_VERIFICATION_TTL_HOURS`; password-reset links expire after
+`BIFROSTNMS_PASSWORD_RESET_TTL_MINUTES`.
+
+`BIFROSTNMS_AUTH_FRONTEND_URL` is the public browser URL used to construct both
+links. It must be the externally reachable HTTPS auth-frontend origin in
+production, not the API's internal container address.
+
+Every password reset increments the user's persistent session version. Redis
+sessions carry the version present when they were created and are rejected on
+their next use when it no longer matches, signing out all existing sessions
+without storing raw session tokens in PostgreSQL.
+
 ## TOTP two-factor authentication
 
 TOTP secrets are generated with `pyotp`. The TOTP secret is encrypted before storage using Fernet; `BIFROSTNMS_AUTH_ENCRYPTION_KEY` must be a strong deployment-specific secret in production. Recovery codes are generated once and only their SHA-256 hashes are stored.
@@ -122,6 +148,7 @@ Production WebAuthn requires a secure HTTPS origin.
 - `backend/bifrostnms/api/two_factor.py` - TOTP and recovery-code API
 - `backend/bifrostnms/api/webauthn.py` - passkey API
 - `backend/bifrostnms/auth/security.py` - password and Redis session implementation
+- `backend/bifrostnms/auth/account_lifecycle.py` - verification and reset tokens
 - `backend/bifrostnms/auth/permissions.py` - installation-level authorization helpers
 - `backend/bifrostnms/auth/two_factor.py` - TOTP/recovery-code logic
 - `backend/bifrostnms/auth/webauthn.py` - WebAuthn ceremony logic
@@ -129,5 +156,8 @@ Production WebAuthn requires a secure HTTPS origin.
 - `backend/bifrostnms/cli/create_superuser.py` - superuser administration CLI
 - `auth-frontend/src/app/account/` - authenticated account overview
 - `auth-frontend/src/app/security/` - authenticated security settings route
+- `auth-frontend/src/app/forgot-password/` - reset request route
+- `auth-frontend/src/app/reset-password/` - password reset route
+- `auth-frontend/src/app/verify-email/` - email verification route
 - `auth-frontend/src/components/SecuritySettings.tsx` - TOTP/passkey management UI
 - `auth-frontend/src/lib/server-auth.ts` - server-side account-route session guard
