@@ -1,4 +1,5 @@
 from .auth import (
+    AuditEvent,
     AuthenticationChallenge,
     Realm,
     RealmMembership,
@@ -9,6 +10,7 @@ from .auth import (
 )
 
 __all__ = [
+    "AuditEvent",
     "AuthenticationChallenge",
     "Realm",
     "RealmMembership",
