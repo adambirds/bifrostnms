@@ -654,14 +654,17 @@ Potential work includes:
 Each capability requires its own scoped design and must not be treated as
 implicitly approved merely because it appears in this list.
 
-## Deferred design questions
+## Stage 0 design decisions
 
-Stage 0 must resolve at least these questions before dependent implementation:
-
-- Historical behavior when targets, monitors, agents or realms are deleted.
+The foundational Stage 0 questions are documented for review. Historical
+behavior for deleted targets, monitors, agents and realms is settled by the
+archival and realm-purge rules in `docs/architecture/data-model.md` and
+`docs/architecture/tenancy.md`.
 
 The observation schema, raw/aggregate relationship and initial TimescaleDB
-strategy are settled in `docs/architecture/measurements.md`.
+strategy are settled in `docs/architecture/measurements.md`. The shared native
+probe contract and exact V1 probe behavior are settled in
+`docs/architecture/probes.md`.
 
 Agent credentials, configuration delivery, capability negotiation, local SQLite
 storage, synchronization and acknowledgement behavior are settled across
