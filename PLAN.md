@@ -176,21 +176,33 @@ observations. Installation superusers are separate from realm roles.
 An enrolled monitoring process operating at a particular network vantage point.
 An agent reports its version, platform, architecture and supported capabilities.
 
+### Agent group
+
+A hierarchical, realm-owned collection of agents used for organization and
+group-based monitor assignment. Agents may belong to several groups.
+
 ### Target
 
-A destination or service to observe, such as an address, hostname, URL or DNS
-name. A target is not itself a schedule or probe definition.
+A reusable destination to observe, identified by a hostname or IP address. A
+target is not itself a schedule or probe definition; URL paths, ports and other
+probe-specific behavior belong to monitors.
+
+### Target group
+
+A hierarchical, realm-owned collection used to organize targets for navigation,
+dashboards and explicit bulk operations. Membership does not silently create or
+alter monitors.
 
 ### Monitor
 
 A realm-owned definition combining a target, probe type, interval, timeout and
 validated probe-specific configuration.
 
-### Monitor-agent assignment
+### Monitor assignment
 
-The explicit relationship that determines which agents execute a monitor. This
-relationship must be capable of supporting future per-agent overrides without
-duplicating the monitor.
+An explicit direct-agent or agent-group relationship that determines which
+agents execute a monitor. Effective assignments are deduplicated, and the
+relationship model must support future overrides without duplicating monitors.
 
 ### Probe execution or observation
 
@@ -429,13 +441,15 @@ Acceptance criteria:
 
 **Status: Not started**
 
-Objective: implement the approved realm-owned target, monitor and assignment
-models plus the approved TimescaleDB schema.
+Objective: implement the approved realm-owned agents, groups, targets, monitors
+and assignments plus the approved TimescaleDB schema.
 
 Deliverables:
 
 - Tortoise models and reviewed migrations;
 - typed management schemas and services;
+- hierarchical agent/target groups and explicit memberships;
+- direct and agent-group monitor assignments;
 - TimescaleDB hypertables and required indexes;
 - uniqueness, deletion and historical-reference behavior; and
 - realm-isolation and model-behavior tests.
@@ -561,7 +575,7 @@ Objective: make distributed measurements understandable and useful to operators.
 
 Deliverables:
 
-- target, monitor, agent and assignment management interfaces;
+- target, monitor, agent, group and assignment management interfaces;
 - current health and recent execution views;
 - SmokePing-style latency-distribution graphs;
 - packet-loss and probe-specific detail views;
