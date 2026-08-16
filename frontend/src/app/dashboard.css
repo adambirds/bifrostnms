@@ -122,6 +122,29 @@
   font-size: 0.82rem;
 }
 
+.page-state {
+  display: grid;
+  max-width: 720px;
+  gap: 0.8rem;
+  padding: 2rem;
+  border: 1px solid #213253;
+  border-radius: 16px;
+  background: #0b1831;
+}
+
+.page-state h1,
+.page-state p {
+  margin: 0;
+}
+
+.page-state p {
+  color: #8fa3c4;
+}
+
+.page-state-error {
+  border-color: #5f2d39;
+}
+
 .agent-series-key,
 .rtt-sample,
 .rtt-range,
