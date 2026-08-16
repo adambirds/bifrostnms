@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     cookie_domain: str | None = None
     cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
+    agent_enrolment_ttl_minutes: int = 15
+    agent_heartbeat_interval_seconds: int = 30
+    agent_configuration_poll_interval_seconds: int = 30
+
     # Development default only. Production deployments must provide a long random value.
     auth_encryption_key: str = "development-only-change-me"
     auth_frontend_url: str = "http://localhost:3001"

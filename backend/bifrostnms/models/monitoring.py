@@ -89,6 +89,17 @@ class AgentCredential(RealmOwnedModel):
         unique_together = (("realm", "agent", "name"),)
 
 
+class AgentEnrolmentToken(RealmOwnedModel):
+    agent_id: uuid.UUID
+    agent: fields.ForeignKeyRelation[Agent] = fields.ForeignKeyField(
+        "models.Agent", related_name="enrolment_tokens", on_delete=fields.CASCADE
+    )
+    token_hash = fields.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = fields.DatetimeField()
+    consumed_at = fields.DatetimeField(null=True, db_index=True)
+    revoked_at = fields.DatetimeField(null=True, db_index=True)
+
+
 class Target(RealmOwnedModel):
     name = fields.CharField(max_length=200)
     description = fields.TextField(null=True)

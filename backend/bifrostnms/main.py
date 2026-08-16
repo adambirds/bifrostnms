@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import RegisterTortoise
 
+from bifrostnms.api.agent_protocol import router as agent_protocol_router
 from bifrostnms.api.auth import router as auth_router
 from bifrostnms.api.monitoring import router as monitoring_router
 from bifrostnms.api.security import router as security_router
@@ -43,6 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(agent_protocol_router, prefix="/api/v1")
 app.include_router(monitoring_router, prefix="/api/v1")
 app.include_router(two_factor_router, prefix="/api/v1")
 app.include_router(webauthn_router, prefix="/api/v1")
