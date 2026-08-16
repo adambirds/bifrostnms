@@ -16,7 +16,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:17-alpine
+    image: timescale/timescaledb:2.29.0-pg17
     environment:
       POSTGRES_DB: bifrostnms
       POSTGRES_USER: bifrostnms

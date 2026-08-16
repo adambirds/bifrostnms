@@ -42,7 +42,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: timescale/timescaledb:2.29.0-pg17
         env:
           POSTGRES_DB: bifrostnms
           POSTGRES_USER: bifrostnms
@@ -120,6 +120,14 @@ jobs:
         run: |
           tools/setup/install-shellcheck
           tools/setup/install-shfmt
+
+      - name: Apply database migrations
+        run: tools/db-migrate
+
+      - name: Verify TimescaleDB extension
+        run: >-
+          psql "$BIFROSTNMS_DATABASE_URL" -Atc
+          "SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'"
 
       - name: Fetch main for lint comparison
         if: github.event_name == 'pull_request'
