@@ -17,7 +17,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'getting-started',
     title: 'Getting started',
-    summary: 'Bootstrap a local BifrostNMS installation and reach the dashboard for the first time.',
+    summary:
+      'Bootstrap a local BifrostNMS installation and reach the dashboard for the first time.',
     sections: [
       {
         heading: 'Start from the Dev Container',
@@ -58,7 +59,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'realms',
     title: 'Realms and access',
-    summary: 'Understand the tenant boundary used by self-hosted installations and BifrostNMS Cloud.',
+    summary:
+      'Understand the tenant boundary used by self-hosted installations and BifrostNMS Cloud.',
     sections: [
       {
         heading: 'What a realm is',
@@ -83,7 +85,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'agents',
     title: 'Agents and enrolment',
-    summary: 'Create an agent, enrol a Go process and understand offline operation.',
+    summary:
+      'Create an agent, enrol a Go process and understand offline operation.',
     sections: [
       {
         heading: 'Create an agent',
@@ -118,7 +121,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'targets-groups',
     title: 'Targets and groups',
-    summary: 'Model destinations and organize agents or targets without hiding monitoring behavior.',
+    summary:
+      'Model destinations and organize agents or targets without hiding monitoring behavior.',
     sections: [
       {
         heading: 'Targets',
@@ -143,7 +147,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'monitors',
     title: 'Monitors and assignments',
-    summary: 'Define a probe, schedule it and choose the vantage points that execute it.',
+    summary:
+      'Define a probe, schedule it and choose the vantage points that execute it.',
     sections: [
       {
         heading: 'Create a monitor',
@@ -174,7 +179,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'probes',
     title: 'Native probes',
-    summary: 'Configure the V1 native probe families without external command-line tools.',
+    summary:
+      'Configure the V1 native probe families without external command-line tools.',
     sections: [
       {
         heading: 'ICMP',
@@ -225,7 +231,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'results',
     title: 'Reading monitoring results',
-    summary: 'Understand current state, gaps, distributed disagreement and SmokePing-style history.',
+    summary:
+      'Understand current state, gaps, distributed disagreement and SmokePing-style history.',
     sections: [
       {
         heading: 'Current state is not just red or green',
@@ -265,7 +272,8 @@ export const userGuides: UserGuide[] = [
   {
     slug: 'local-testing',
     title: 'Local Stage 9 test walkthrough',
-    summary: 'Exercise the complete V1 dashboard workflow on a development installation.',
+    summary:
+      'Exercise the complete V1 dashboard workflow on a development installation.',
     sections: [
       {
         heading: '1. Bootstrap and sign in',

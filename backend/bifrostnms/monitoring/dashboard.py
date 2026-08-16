@@ -221,9 +221,7 @@ async def query_monitor_states(
                 agent_id=UUID(str(row["agent_id"])),
                 agent_name=str(row["agent_name"]),
                 probe_type=ProbeType(str(row["probe_type"])),
-                availability_state=_availability_state(
-                    row, now=resolved_now, settings=settings
-                ),
+                availability_state=_availability_state(row, now=resolved_now, settings=settings),
                 desired_config_revision=int(row.get("desired_revision") or 0),
                 acknowledged_config_revision=int(row.get("acknowledged_revision") or 0),
                 last_observation_id=(
@@ -424,7 +422,7 @@ async def query_probe_history(
     connection = connections.get("default")
     # The only interpolated values are compile-time table/column fragments selected
     # from the ProbeType enum above. All request-derived values remain parameters.
-    rows = await connection.execute_query_dict(  # noqa: S608
+    rows = await connection.execute_query_dict(
         f"""
         SELECT
             observation.observation_id,
