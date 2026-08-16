@@ -129,6 +129,8 @@ type Capability struct {
 	Available                  bool
 }
 
+type AvailabilityDetector func(context.Context) bool
+
 type Registry struct {
 	probes map[Type]Probe
 }
@@ -183,6 +185,27 @@ func (r *Registry) Capabilities(availability map[Type]bool) map[Type]Capability 
 		}
 	}
 	return capabilities
+}
+
+func (r *Registry) DetectCapabilities(
+	ctx context.Context, detectors map[Type]AvailabilityDetector,
+) map[Type]Capability {
+	availability := make(map[Type]bool, len(r.probes))
+	for probeType := range r.probes {
+		if detector := detectors[probeType]; detector != nil {
+			availability[probeType] = detectSafely(ctx, detector)
+		}
+	}
+	return r.Capabilities(availability)
+}
+
+func detectSafely(ctx context.Context, detector AvailabilityDetector) (available bool) {
+	defer func() {
+		if recover() != nil {
+			available = false
+		}
+	}()
+	return detector(ctx)
 }
 
 func DecodeConfigurationStrict[T any](raw json.RawMessage) (T, error) {
