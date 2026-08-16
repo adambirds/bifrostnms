@@ -443,10 +443,18 @@ Acceptance criteria:
 
 ### Stage 3: Monitoring domain models
 
-**Status: Not started**
+**Status: Validated**
 
 Objective: implement the approved realm-owned agents, groups, targets, monitors
 and assignments plus the approved TimescaleDB schema.
+
+The realm-owned relational domain, strict V1 probe configuration contracts,
+hierarchical groups, memberships and assignments are implemented behind
+realm-scoped management APIs. PostgreSQL constraints protect hierarchy,
+uniqueness and revision invariants, while TimescaleDB stores common observations
+and typed ICMP, HTTP, TCP, DNS and TLS results in seven-day hypertable chunks.
+Integration tests exercise the real database schema, archival behavior,
+cross-realm rejection and representative realm-led graph query plans.
 
 Deliverables:
 
