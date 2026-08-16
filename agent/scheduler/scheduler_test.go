@@ -3,11 +3,13 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/adambirds/bifrostnms/agent/probe"
+	"github.com/adambirds/bifrostnms/agent/storage"
 )
 
 type controlledProbe struct {
@@ -57,15 +59,18 @@ func TestSchedulerUsesScheduledIntervalsWithoutOverlap(t *testing.T) {
 	})
 	scheduler, _ := New(registry, 2)
 	now := time.Date(2026, 8, 16, 19, 0, 0, 0, time.UTC)
-	if err := scheduler.Reconcile([]Assignment{testAssignment("monitor-a")}, now); err != nil {
+	if err := scheduler.Reconcile(context.Background(), []Assignment{testAssignment("monitor-a")}, now); err != nil {
 		t.Fatalf("reconcile scheduler: %v", err)
 	}
 	due := scheduler.NextDue()["monitor-a"]
-	if missed := scheduler.Tick(context.Background(), due); len(missed) != 0 {
+	if missed, err := scheduler.Tick(context.Background(), due); err != nil || len(missed) != 0 {
 		t.Fatalf("initial missed runs = %#v", missed)
 	}
 	<-started
-	missed := scheduler.Tick(context.Background(), due.Add(5*time.Second))
+	missed, err := scheduler.Tick(context.Background(), due.Add(5*time.Second))
+	if err != nil {
+		t.Fatalf("tick scheduler: %v", err)
+	}
 	if len(missed) != 1 || missed[0].Reason != MissOverlap {
 		t.Fatalf("overlap missed runs = %#v", missed)
 	}
@@ -90,7 +95,7 @@ func TestSchedulerBoundsConcurrencyAndReportsCapacity(t *testing.T) {
 	scheduler, _ := New(registry, 1)
 	now := time.Date(2026, 8, 16, 19, 0, 0, 0, time.UTC)
 	assignments := []Assignment{testAssignment("monitor-a"), testAssignment("monitor-b")}
-	if err := scheduler.Reconcile(assignments, now); err != nil {
+	if err := scheduler.Reconcile(context.Background(), assignments, now); err != nil {
 		t.Fatalf("reconcile scheduler: %v", err)
 	}
 	due := scheduler.NextDue()
@@ -98,7 +103,10 @@ func TestSchedulerBoundsConcurrencyAndReportsCapacity(t *testing.T) {
 	if due["monitor-b"].After(latestDue) {
 		latestDue = due["monitor-b"]
 	}
-	missed := scheduler.Tick(context.Background(), latestDue)
+	missed, err := scheduler.Tick(context.Background(), latestDue)
+	if err != nil {
+		t.Fatalf("tick scheduler: %v", err)
+	}
 	if len(missed) != 1 || missed[0].Reason != MissCapacity {
 		t.Fatalf("capacity missed runs = %#v", missed)
 	}
@@ -119,10 +127,12 @@ func TestSchedulerDeadlineCancelsProbe(t *testing.T) {
 	now := time.Date(2026, 8, 16, 19, 0, 0, 0, time.UTC)
 	assignment := testAssignment("monitor-a")
 	assignment.Timeout = MinimumTimeout
-	if err := scheduler.Reconcile([]Assignment{assignment}, now); err != nil {
+	if err := scheduler.Reconcile(context.Background(), []Assignment{assignment}, now); err != nil {
 		t.Fatalf("reconcile scheduler: %v", err)
 	}
-	scheduler.Tick(context.Background(), scheduler.NextDue()["monitor-a"])
+	if _, err := scheduler.Tick(context.Background(), scheduler.NextDue()["monitor-a"]); err != nil {
+		t.Fatalf("tick scheduler: %v", err)
+	}
 	select {
 	case <-scheduler.Results():
 	case <-time.After(time.Second):
@@ -137,7 +147,49 @@ func TestReconcileRejectsInvalidSchedulingBounds(t *testing.T) {
 	scheduler, _ := New(registry, 1)
 	assignment := testAssignment("monitor-a")
 	assignment.Timeout = assignment.Interval
-	if err := scheduler.Reconcile([]Assignment{assignment}, time.Now().UTC()); err == nil {
+	if err := scheduler.Reconcile(
+		context.Background(), []Assignment{assignment}, time.Now().UTC(),
+	); err == nil {
 		t.Fatal("invalid scheduling bounds were accepted")
+	}
+}
+
+func TestPersistedSchedulerSkipsElapsedRunsAfterRestart(t *testing.T) {
+	ctx := context.Background()
+	store, err := storage.Open(ctx, filepath.Join(t.TempDir(), "agent.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	var runs atomic.Int32
+	registry, _ := probe.NewRegistry(controlledProbe{runs: &runs})
+	first, _ := New(registry, 1, WithStateStore(store))
+	now := time.Date(2026, 8, 16, 22, 0, 0, 0, time.UTC)
+	assignment := testAssignment("monitor-a")
+	if err := first.Reconcile(ctx, []Assignment{assignment}, now); err != nil {
+		t.Fatalf("reconcile initial scheduler: %v", err)
+	}
+	due := first.NextDue()[assignment.MonitorID]
+	if _, err := first.Tick(ctx, due); err != nil {
+		t.Fatalf("run initial schedule: %v", err)
+	}
+	first.Wait()
+	<-first.Results()
+
+	restartedAt := due.Add(3*assignment.Interval + time.Second)
+	restarted, _ := New(registry, 1, WithStateStore(store))
+	if err := restarted.Reconcile(ctx, []Assignment{assignment}, restartedAt); err != nil {
+		t.Fatalf("reconcile restarted scheduler: %v", err)
+	}
+	restoredDue := restarted.NextDue()[assignment.MonitorID]
+	if !restoredDue.After(restartedAt) {
+		t.Fatalf("restored due time %v does not skip restart time %v", restoredDue, restartedAt)
+	}
+	if missed, err := restarted.Tick(ctx, restartedAt); err != nil || len(missed) != 0 {
+		t.Fatalf("restart tick missed = %#v, error = %v", missed, err)
+	}
+	state, err := store.ScheduleState(ctx, assignment.MonitorID)
+	if err != nil || state.MissedRunCount != 3 {
+		t.Fatalf("persisted schedule state = %#v, error = %v", state, err)
 	}
 }

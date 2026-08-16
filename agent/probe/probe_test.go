@@ -76,6 +76,7 @@ func TestResultValidationEnforcesCommonSemanticsAndBounds(t *testing.T) {
 	valid := Result{
 		StartedAt: now, FinishedAt: now.Add(time.Millisecond),
 		ExecutionStatus: ExecutionCompleted, Assessment: AssessmentHealthy,
+		ProbeResult: struct{}{},
 	}
 	if err := valid.Validate(); err != nil {
 		t.Fatalf("valid result: %v", err)

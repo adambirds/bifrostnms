@@ -20,7 +20,7 @@ import (
 const (
 	DefaultPath          = "/var/lib/bifrostnms-agent/agent.db"
 	defaultBusyTimeout   = 5 * time.Second
-	CurrentSchemaVersion = 2
+	CurrentSchemaVersion = 3
 )
 
 var (
