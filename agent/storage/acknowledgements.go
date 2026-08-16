@@ -208,8 +208,12 @@ func validateAcknowledgements(
 		}
 		seen[identity] = struct{}{}
 		observation := batch[index]
-		if !acknowledgement.ScheduledAt.Equal(observation.ScheduledAt) ||
-			acknowledgement.ObservationID != observation.ObservationID {
+		// The control plane uses Python datetime/PostgreSQL, both of which preserve
+		// microsecond precision. Older queued Go observations may contain nanoseconds,
+		// so compare the protocol identity at the precision the server can round-trip.
+		if !acknowledgement.ScheduledAt.Truncate(time.Microsecond).Equal(
+			observation.ScheduledAt.Truncate(time.Microsecond),
+		) || acknowledgement.ObservationID != observation.ObservationID {
 			return ErrUntrustedAcknowledgement
 		}
 		switch acknowledgement.Disposition {
