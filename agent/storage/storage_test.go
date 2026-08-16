@@ -27,8 +27,8 @@ func TestOpenConfiguresAndMigratesDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("schema version: %v", err)
 	}
-	if version != 1 {
-		t.Fatalf("schema version = %d, want 1", version)
+	if version != CurrentSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", version, CurrentSchemaVersion)
 	}
 	checks := map[string]string{
 		"PRAGMA journal_mode": "wal",

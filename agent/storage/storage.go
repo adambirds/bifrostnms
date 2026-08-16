@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	DefaultPath        = "/var/lib/bifrostnms-agent/agent.db"
-	defaultBusyTimeout = 5 * time.Second
+	DefaultPath          = "/var/lib/bifrostnms-agent/agent.db"
+	defaultBusyTimeout   = 5 * time.Second
+	CurrentSchemaVersion = 2
 )
 
 var (
@@ -114,14 +115,22 @@ func (s *Store) migrate(ctx context.Context) error {
 		return fmt.Errorf("list embedded migrations: %w", err)
 	}
 	sort.Strings(entries)
+	if len(entries) != CurrentSchemaVersion {
+		return fmt.Errorf(
+			"embedded migration count = %d, expected %d",
+			len(entries), CurrentSchemaVersion,
+		)
+	}
 	var current int
 	if err := s.db.QueryRowContext(
 		ctx, "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
 	).Scan(&current); err != nil {
 		return fmt.Errorf("read agent schema version: %w", err)
 	}
-	if current > len(entries) {
-		return fmt.Errorf("%w: database=%d supported=%d", ErrNewerSchema, current, len(entries))
+	if current > CurrentSchemaVersion {
+		return fmt.Errorf(
+			"%w: database=%d supported=%d", ErrNewerSchema, current, CurrentSchemaVersion,
+		)
 	}
 	for _, name := range entries[current:] {
 		if err := s.applyMigration(ctx, name); err != nil {
