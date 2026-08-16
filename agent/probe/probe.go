@@ -164,28 +164,49 @@ func (r *Registry) Validate(
 	if !ok {
 		return fmt.Errorf("probe type %q is unsupported", probeType)
 	}
-	if configurationSchemaVersion != implementation.ConfigurationSchemaVersion() {
-		return fmt.Errorf("probe type %q configuration schema %d is unsupported", probeType, configurationSchemaVersion)
+	if implementation.ConfigurationSchemaVersion() != configurationSchemaVersion {
+		return fmt.Errorf(
+			"probe %q configuration schema %d is unsupported",
+			probeType, configurationSchemaVersion,
+		)
 	}
-	return implementation.Validate(raw)
+	if err := implementation.Validate(raw); err != nil {
+		return fmt.Errorf("validate probe %q configuration: %w", probeType, err)
+	}
+	return nil
+}
+
+func (r *Registry) Capabilities(availability map[Type]bool) map[Type]Capability {
+	capabilities := make(map[Type]Capability, len(r.probes))
+	for probeType, implementation := range r.probes {
+		capabilities[probeType] = Capability{
+			ConfigurationSchemaVersion: implementation.ConfigurationSchemaVersion(),
+			ResultSchemaVersion:        implementation.ResultSchemaVersion(),
+			Available:                  availability[probeType],
+		}
+	}
+	return capabilities
 }
 
 func (r *Registry) DetectCapabilities(
 	ctx context.Context, detectors map[Type]AvailabilityDetector,
 ) map[Type]Capability {
-	capabilities := make(map[Type]Capability, len(r.probes))
-	for probeType, implementation := range r.probes {
-		available := true
-		if detector, ok := detectors[probeType]; ok && detector != nil {
-			available = detector(ctx)
-		}
-		capabilities[probeType] = Capability{
-			ConfigurationSchemaVersion: implementation.ConfigurationSchemaVersion(),
-			ResultSchemaVersion:        implementation.ResultSchemaVersion(),
-			Available:                  available,
+	availability := make(map[Type]bool, len(r.probes))
+	for probeType := range r.probes {
+		if detector := detectors[probeType]; detector != nil {
+			availability[probeType] = detectSafely(ctx, detector)
 		}
 	}
-	return capabilities
+	return r.Capabilities(availability)
+}
+
+func detectSafely(ctx context.Context, detector AvailabilityDetector) (available bool) {
+	defer func() {
+		if recover() != nil {
+			available = false
+		}
+	}()
+	return detector(ctx)
 }
 
 func DecodeStrict(raw json.RawMessage, destination any) error {
