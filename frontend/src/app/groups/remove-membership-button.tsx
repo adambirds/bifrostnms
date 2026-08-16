@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 
 import {
-  initialGroupActionState,
+  type GroupActionState,
   removeAgentGroupMembershipAction,
   removeTargetGroupMembershipAction,
 } from '@/app/groups/actions'
@@ -12,6 +12,11 @@ type RemoveMembershipButtonProps = {
   kind: 'agent' | 'target'
   groupId: string
   resourceId: string
+}
+
+const initialGroupActionState: GroupActionState = {
+  error: null,
+  success: null,
 }
 
 export function RemoveMembershipButton({
