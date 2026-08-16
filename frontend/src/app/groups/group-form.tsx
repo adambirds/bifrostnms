@@ -5,9 +5,14 @@ import { useActionState } from 'react'
 import {
   createAgentGroupAction,
   createTargetGroupAction,
-  initialGroupActionState,
+  type GroupActionState,
 } from '@/app/groups/actions'
 import type { AgentGroup, TargetGroup } from '@/lib/monitoring'
+
+const initialGroupActionState: GroupActionState = {
+  error: null,
+  success: null,
+}
 
 type GroupFormProps =
   | { kind: 'agent'; groups: AgentGroup[] }
