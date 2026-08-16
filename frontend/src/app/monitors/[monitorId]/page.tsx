@@ -1,9 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { IcmpGraph, type IcmpPoint } from '@/app/icmp-graph'
 import {
-  availabilityLabel,
+  IcmpGraph,
+  type IcmpObservationMeta,
+  type IcmpPoint,
+} from '@/app/icmp-graph'
+import {
   formatDuration,
   formatTimestamp,
   statusClass,
@@ -283,84 +286,66 @@ export default async function MonitorDetailPage({ params, searchParams }: PagePr
       {
         scheduled_at: point.scheduled_at,
         agent_id: point.agent_id,
+        packets_sent: point.result.packets_sent,
+        packets_received: point.result.packets_received,
         packet_loss_percent: point.result.packet_loss_percent,
         min_rtt_ms: point.result.min_rtt_ms,
+        avg_rtt_ms: point.result.avg_rtt_ms,
         median_rtt_ms: point.result.median_rtt_ms,
         max_rtt_ms: point.result.max_rtt_ms,
+        p95_rtt_ms: point.result.p95_rtt_ms,
+        jitter_ms: point.result.jitter_ms,
         rtt_samples_ms: point.result.rtt_samples_ms,
       },
     ]
   })
+  const icmpObservations: IcmpObservationMeta[] = history.map((point) => ({
+    scheduled_at: point.scheduled_at,
+    agent_id: point.agent_id,
+    execution_status: point.execution_status,
+    assessment: point.assessment,
+  }))
+  const packetCount = icmpPoints.at(-1)?.packets_sent
 
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">{monitor.probe_type.toUpperCase()} monitor</span>
-          <h1>{monitor.name}</h1>
-          <p>
-            {target?.name ?? 'Unknown target'} · {target?.address ?? 'Unknown address'}
-          </p>
-        </div>
-        <div className="page-actions">
-          <Link className="secondary compact-action" href="/monitors">
-            Back to monitors
-          </Link>
-          <Link className="secondary compact-action" href={`/monitors/${monitor.id}/edit`}>
-            Edit monitor
-          </Link>
+      <div className="monitor-detail-heading">
+        <nav className="monitor-breadcrumbs" aria-label="Breadcrumb">
+          <Link href="/monitors">Monitors</Link>
+          <span>›</span>
+          <span>{monitor.name}</span>
+        </nav>
+        <div className="monitor-title-row">
+          <div>
+            <div className="monitor-title-line">
+              <h1>{monitor.name}</h1>
+              <span className={state ? statusClass(state.headline) : 'status-muted'}>
+                {state?.headline ?? 'Unknown'}
+              </span>
+            </div>
+            <div className="monitor-meta-line">
+              <span>{monitor.probe_type.toUpperCase()}</span>
+              <i />
+              <span>Every {monitor.interval_seconds} seconds</span>
+              <i />
+              <span>{monitor.timeout_seconds}s timeout</span>
+              {packetCount ? <><i /><span>{packetCount} packets</span></> : null}
+              <i />
+              <span>{target?.address ?? 'Unknown address'}</span>
+            </div>
+          </div>
+          <div className="page-actions">
+            <Link className="secondary compact-action" href="/monitors">
+              Back to monitors
+            </Link>
+            <Link className="secondary compact-action" href={`/monitors/${monitor.id}/edit`}>
+              Edit monitor
+            </Link>
+          </div>
         </div>
       </div>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">Distributed current state</span>
-            <h2>Vantage points</h2>
-          </div>
-          <span className={state ? statusClass(state.headline) : 'status-muted'}>
-            {state?.headline ?? 'Unknown'}
-          </span>
-        </div>
-        {state?.agents.length ? (
-          <div className="state-grid">
-            {state.agents.map((agentState) => (
-              <article className="state-card" key={agentState.agent_id}>
-                <div className="state-card-heading">
-                  <strong>{agentState.agent_name}</strong>
-                  <span className={statusClass(agentState.availability_state)}>
-                    {availabilityLabel(agentState.availability_state)}
-                  </span>
-                </div>
-                <dl className="compact-details">
-                  <div>
-                    <dt>Configuration</dt>
-                    <dd>
-                      {agentState.acknowledged_config_revision}/
-                      {agentState.desired_config_revision}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Last scheduled</dt>
-                    <dd>{formatTimestamp(agentState.last_scheduled_at)}</dd>
-                  </div>
-                  <div>
-                    <dt>Assessment</dt>
-                    <dd>{agentState.assessment ?? 'No trustworthy result yet'}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <strong>No effective assignments</strong>
-            <span>Assign this monitor to an enabled agent or agent group to expect data.</span>
-          </div>
-        )}
-      </section>
-
-      <section className="panel">
+      <section className="panel monitor-history-panel">
         <div className="panel-heading history-heading">
           <div>
             <span className="eyebrow">Historical measurements</span>
@@ -383,11 +368,28 @@ export default async function MonitorDetailPage({ params, searchParams }: PagePr
           <IcmpGraph
             agentNames={graphAgentNames}
             intervalSeconds={monitor.interval_seconds}
+            observations={icmpObservations}
             points={icmpPoints}
+            rangeEnd={end.toISOString()}
+            rangeStart={start.toISOString()}
           />
-        ) : null}
-        <ProbeHistoryTable agentNames={agentNames} history={history} monitor={monitor} />
+        ) : (
+          <ProbeHistoryTable agentNames={agentNames} history={history} monitor={monitor} />
+        )}
       </section>
+
+      {monitor.probe_type === 'icmp' ? (
+        <section className="panel raw-observations-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Raw observations</span>
+              <h2>Recent probe executions</h2>
+            </div>
+            <span className="muted">{history.length} rows in this range</span>
+          </div>
+          <ProbeHistoryTable agentNames={agentNames} history={history} monitor={monitor} />
+        </section>
+      ) : null}
     </>
   )
 }
