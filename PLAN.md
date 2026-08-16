@@ -571,10 +571,14 @@ Acceptance criteria:
 
 ### Stage 8: HTTP/HTTPS, TCP, DNS and TLS monitoring
 
-**Status: Not started**
+**Status: In progress**
 
 Objective: complete the useful baseline synthetic-monitoring probe set using
 native Go implementations.
+
+TCP is implemented and validated on the current service-probe branch. HTTP/HTTPS
+is implemented on the same branch and is undergoing CI validation. DNS and TLS
+remain to be completed before this stage can be considered implemented.
 
 Acceptance criteria:
 
@@ -618,113 +622,62 @@ full incident-management platform.
 
 Deliverables:
 
-- realm-owned alert rules and state;
-- availability, latency, packet-loss and certificate-expiry conditions;
-- sustained-condition and recovery handling;
-- provider-neutral notification dispatch; and
-- email notifications through existing email backends.
+- alert rules scoped to realms and monitors;
+- pending, firing and resolved state;
+- configurable evaluation windows/debounce;
+- email and webhook delivery through Celery;
+- notification attempt history and retry behavior; and
+- audit/security events for alert configuration changes.
 
 Acceptance criteria:
 
-- Evaluation and notification tasks are idempotent.
-- Repeated observations do not create notification storms.
-- Users can distinguish active, recovered and insufficient-data states.
-- Cross-realm notification access is impossible.
+- Alert state survives process restarts.
+- Transient single failures do not necessarily fire when a rule requires a
+  sustained condition.
+- Notification redelivery is idempotent enough to avoid uncontrolled duplicate
+  delivery.
+- Realm boundaries are enforced for rules, state and notification channels.
 
-### Stage 11: Packaging and production deployment
+### Stage 11: Packaging, deployment and V1 operations
 
 **Status: Not started**
 
-Objective: turn the validated components into a supportable V1 release.
+Objective: make the supported self-hosted deployment predictable to install,
+operate, back up and upgrade.
 
 Deliverables:
 
-- versioned control-plane and agent artifacts;
-- supported Docker Compose deployment;
-- Linux agent packaging and service definition;
-- backup, restore, migration and upgrade documentation;
-- health/readiness behavior; and
-- release and compatibility policy.
+- documented Docker Compose deployment;
+- published control-plane and agent images;
+- agent binaries for supported platforms;
+- documented Linux service installation and ICMP capability setup;
+- backup and restore procedures;
+- migration and upgrade runbook; and
+- health/readiness checks suitable for deployment automation.
 
 Acceptance criteria:
 
-- A clean documented deployment can reach the complete V1 outcome.
-- Upgrades preserve durable configuration and observations.
-- Required capabilities, ports, volumes and secrets are explicit.
-- CI validates release artifacts on supported architectures.
+- A clean self-hosted installation can be brought online from documentation.
+- Persistent volumes and secrets are explicit.
+- Database backups restore into a working instance.
+- Upgrade instructions account for database migrations and agent compatibility.
 
-### Stage 12: Post-V1 automation and extended monitoring
+## Post-V1 roadmap
 
-**Status: Not started**
+Candidate work after the V1 boundary includes:
 
-Potential work includes:
+- traceroute, MTR and route-history analysis;
+- SNMP and broader network-device monitoring;
+- bandwidth testing and `iperf3` integration;
+- custom executable probes;
+- public status pages;
+- SAML and enterprise SSO;
+- hosted public probe locations;
+- official Terraform and Ansible integrations;
+- richer notification integrations;
+- advanced retention and continuous aggregation policies;
+- multi-region BifrostNMS Cloud infrastructure; and
+- automated incident correlation or diagnosis.
 
-- official Ansible role or collection for control planes and agents;
-- Terraform provider for realm and monitoring resources;
-- unattended installation, enrolment, upgrades and rollback;
-- declarative configuration import/export and drift reporting;
-- traceroute, MTR and route-history monitoring;
-- SNMP and selected infrastructure protocols;
-- specialized external-tool and custom probes;
-- status pages and additional notification channels;
-- enterprise identity and authorization features; and
-- BifrostNMS Cloud and hosted public probe locations.
-
-Each capability requires its own scoped design and must not be treated as
-implicitly approved merely because it appears in this list.
-
-## Stage 0 design decisions
-
-The foundational Stage 0 questions are documented and approved. Historical
-behavior for deleted targets, monitors, agents and realms is settled by the
-archival and realm-purge rules in `docs/architecture/data-model.md` and
-`docs/architecture/tenancy.md`.
-
-The observation schema, raw/aggregate relationship and initial TimescaleDB
-strategy are settled in `docs/architecture/measurements.md`. The shared native
-probe contract and exact V1 probe behavior are settled in
-`docs/architecture/probes.md`.
-
-Agent credentials, configuration delivery, capability negotiation, local SQLite
-storage, synchronization and acknowledgement behavior are settled across
-`docs/architecture/agent-protocol.md`, `docs/architecture/agent-storage.md` and
-`docs/architecture/sync.md`.
-
-Health-state derivation, cross-agent aggregation, coverage and missing-data
-semantics are settled in `docs/architecture/health.md`.
-
-## Decision record
-
-The following decisions are settled unless an explicit architecture change is
-reviewed and documented:
-
-- The product name is BifrostNMS: Bifrost Network Monitoring System.
-- The backend is FastAPI, not Django.
-- The ORM is Tortoise ORM using its built-in migrations; Aerich is not used.
-- The web applications use Next.js 16 and strict TypeScript.
-- Monitoring agents are written in Go and use SQLite for durable local state.
-- PostgreSQL/TimescaleDB stores durable server and monitoring data.
-- Redis stores browser sessions and suitable ephemeral/Celery state.
-- Browser sessions are opaque tokens whose raw values are not persisted.
-- Realm tenancy is present in self-hosted and hosted deployments.
-- Password, TOTP/recovery-code and WebAuthn/passkey authentication are foundational.
-- Standard probes are native Go implementations.
-- Configuration is UI/API-first, with future declarative automation supported by
-  the same management APIs.
-- V1 includes ICMP, HTTP/HTTPS, TCP, DNS and TLS certificate probes.
-- SmokePing-style latency-distribution visualization is a V1 requirement.
-- Official Ansible and Terraform integrations are post-V1.
-
-## Maintaining this plan
-
-- Update stage status only when the stated definition is met.
-- Do not delete deferred requirements merely to simplify an implementation.
-- Record superseding decisions here and in the relevant architecture document.
-- Keep implementation details in focused documentation rather than growing this
-  file into an API or schema reference.
-- Add newly discovered cross-cutting constraints before dependent work spreads.
-- Update the V1 definition only through deliberate product-scope discussion.
-- A pull request completing a stage should update its status and cite its
-  acceptance evidence.
-- When this plan conflicts with current architecture documentation, stop and
-  reconcile the documents rather than choosing whichever is more convenient.
+Post-V1 items should be promoted into delivery stages only when their architecture
+and product scope are deliberately accepted.
