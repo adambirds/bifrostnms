@@ -27,6 +27,7 @@ class SessionData:
     user_agent: str
     ip_address: str | None
     redis_key: str
+    user_session_version: int = 1
 
     def to_json(self) -> str:
         data = asdict(self)
@@ -42,6 +43,7 @@ class SessionData:
         data = json.loads(value)
         return cls(
             user_id=UUID(data["user_id"]),
+            user_session_version=data.get("user_session_version", 1),
             active_realm_id=UUID(data["active_realm_id"]) if data.get("active_realm_id") else None,
             auth_method=data["auth_method"],
             created_at=datetime.fromisoformat(data["created_at"]),
@@ -99,6 +101,7 @@ async def create_session(
     now = datetime.now(UTC)
     session = SessionData(
         user_id=user.id,
+        user_session_version=user.session_version,
         active_realm_id=await _initial_realm_id(user),
         auth_method=auth_method,
         created_at=now,
@@ -138,6 +141,9 @@ async def get_session_user(request: Request) -> tuple[User, SessionData]:
     session = SessionData.from_json(raw, redis_key=redis_key)
     user = await User.filter(id=session.user_id, is_active=True).first()
     if user is None:
+        await redis.delete(redis_key)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
+    if session.user_session_version != user.session_version:
         await redis.delete(redis_key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
 

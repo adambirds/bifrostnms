@@ -24,6 +24,7 @@ class User(TimestampedModel):
     is_active = fields.BooleanField(default=True)
     is_superuser = fields.BooleanField(default=False)
     email_verified = fields.BooleanField(default=False)
+    session_version = fields.IntField(default=1)
 
     memberships: fields.ReverseRelation[RealmMembership]
     webauthn_credentials: fields.ReverseRelation[WebAuthnCredential]
