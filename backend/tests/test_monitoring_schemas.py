@@ -43,6 +43,7 @@ def test_probe_configuration_rejects_unknown_fields() -> None:
         (ProbeType.HTTP, {"expected_status_codes": [200, 200]}),
         (ProbeType.HTTP, {"expected_status_codes": [99]}),
         (ProbeType.TCP, {"port": 0}),
+        (ProbeType.TCP, {"port": 443, "address_family": "ipx"}),
         (ProbeType.DNS, {"query_name": ""}),
         (ProbeType.TLS, {"port": 65536}),
     ],
