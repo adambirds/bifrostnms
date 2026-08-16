@@ -147,6 +147,9 @@ async def get_session_user(request: Request) -> tuple[User, SessionData]:
         await redis.delete(redis_key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
 
+    if session.active_realm_id is None:
+        session.active_realm_id = await _initial_realm_id(user)
+
     session.last_activity = datetime.now(UTC)
     await redis.set(redis_key, session.to_json(), ex=settings.session_ttl_seconds)
     return user, session
