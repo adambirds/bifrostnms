@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -90,6 +91,10 @@ func enrol(ctx context.Context, store *storage.Store, arguments []string) error 
 	if err != nil {
 		return err
 	}
+	credentialSecret, err := issuedCredentialSecret(response)
+	if err != nil {
+		return err
+	}
 	now := time.Now().UTC()
 	if err := store.SaveIdentity(ctx, storage.Identity{
 		AgentID: response.AgentID, RealmID: response.RealmID,
@@ -98,13 +103,21 @@ func enrol(ctx context.Context, store *storage.Store, arguments []string) error 
 		return err
 	}
 	if err := store.SaveCredential(ctx, storage.Credential{
-		CredentialID: response.CredentialID, Secret: response.Credential,
+		CredentialID: response.CredentialID, Secret: credentialSecret,
 		CreatedAt: now, ActivatedAt: &now,
 	}); err != nil {
 		return err
 	}
 	slog.Info("agent enrolled", "agent_id", response.AgentID, "realm_id", response.RealmID)
 	return nil
+}
+
+func issuedCredentialSecret(response protocol.EnrolmentResponse) (string, error) {
+	identifier, secret, found := strings.Cut(response.Credential, ".")
+	if !found || identifier != response.CredentialID || secret == "" {
+		return "", errors.New("enrolment response credential does not match credential_id")
+	}
+	return secret, nil
 }
 
 func run(ctx context.Context, store *storage.Store) error {
