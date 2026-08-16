@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import ipaddress
 import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationInfo, field_validator
 
 from bifrostnms.models import ProbeType
 
@@ -135,17 +136,76 @@ class TcpProbeConfiguration(ProbeConfiguration):
     address_family: Literal["auto", "ipv4", "ipv6"] = "auto"
 
 
+class DnsAnswerAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    value: Annotated[str, Field(min_length=1, max_length=1024)]
+
+    @field_validator("value")
+    @classmethod
+    def validate_value(cls, value: str) -> str:
+        if any(ord(character) < 32 or ord(character) == 127 for character in value):
+            raise ValueError("DNS answer assertion contains control characters")
+        return value
+
+
 class DnsProbeConfiguration(ProbeConfiguration):
-    query_name: Annotated[str, Field(min_length=1, max_length=253)]
-    query_type: Literal["A", "AAAA", "CNAME", "MX", "NS", "PTR", "SOA", "TXT"] = "A"
-    transport: Literal["udp", "tcp"] = "udp"
-    port: Annotated[int, Field(ge=1, le=65535)] = 53
+    resolver_mode: Literal["system", "explicit"] = "system"
+    resolver_address: Annotated[str, Field(min_length=2, max_length=45)] | None = None
+    resolver_port: Annotated[int, Field(ge=1, le=65535)] = 53
+    transport: Literal["udp_with_tcp_fallback", "tcp"] = "udp_with_tcp_fallback"
+    query_name: Annotated[str, Field(min_length=1, max_length=253)] | None = None
+    query_type: Literal["A", "AAAA", "CNAME", "MX", "NS", "TXT", "PTR"] = "A"
     recursion_desired: bool = True
+    expected_response_codes: Annotated[list[str], Field(min_length=1, max_length=16)] = Field(
+        default_factory=lambda: ["NOERROR"]
+    )
+    expected_answers: Annotated[list[DnsAnswerAssertion], Field(max_length=32)] = Field(
+        default_factory=list
+    )
+
+    @field_validator("resolver_address")
+    @classmethod
+    def validate_resolver_address(cls, value: str | None, info: ValidationInfo) -> str | None:
+        mode = info.data.get("resolver_mode", "system")
+        if mode == "explicit":
+            if value is None:
+                raise ValueError("resolver_address is required for explicit DNS resolver mode")
+            try:
+                ipaddress.ip_address(value)
+            except ValueError as error:
+                raise ValueError("resolver_address must be an IP address") from error
+        elif value is not None:
+            raise ValueError("resolver_address is not permitted for system DNS resolver mode")
+        return value
+
+    @field_validator("transport")
+    @classmethod
+    def validate_transport(cls, value: str, info: ValidationInfo) -> str:
+        if info.data.get("resolver_mode", "system") == "system" and value != "udp_with_tcp_fallback":
+            raise ValueError("system DNS resolver mode uses platform resolver transport behavior")
+        return value
 
     @field_validator("query_name")
     @classmethod
-    def normalize_query_name(cls, value: str) -> str:
-        return value.rstrip(".").lower()
+    def normalize_query_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().rstrip(".")
+        if not normalized or any(ord(character) < 32 or ord(character) == 127 for character in normalized):
+            raise ValueError("query_name is invalid")
+        return normalized
+
+    @field_validator("expected_response_codes")
+    @classmethod
+    def validate_response_codes(cls, value: list[str]) -> list[str]:
+        allowed = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
+        normalized = [code.strip().upper() for code in value]
+        if any(code not in allowed for code in normalized):
+            raise ValueError("expected_response_codes contains an unsupported DNS response code")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("expected_response_codes must be unique")
+        return normalized
 
 
 class TlsProbeConfiguration(ProbeConfiguration):
