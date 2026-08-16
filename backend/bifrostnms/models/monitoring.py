@@ -20,6 +20,7 @@ class ProbeType(StrEnum):
 
 class RealmOwnedModel(Model):
     id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
+    realm_id: uuid.UUID
     realm: fields.ForeignKeyRelation[Realm] = fields.ForeignKeyField(
         "models.Realm", related_name=False, on_delete=fields.RESTRICT
     )
@@ -41,6 +42,7 @@ class Agent(RealmOwnedModel):
 
 
 class AgentGroup(RealmOwnedModel):
+    parent_id: uuid.UUID | None
     parent: fields.ForeignKeyNullableRelation[AgentGroup] = fields.ForeignKeyField(
         "models.AgentGroup",
         related_name="children",
@@ -96,6 +98,7 @@ class Target(RealmOwnedModel):
 
 
 class TargetGroup(RealmOwnedModel):
+    parent_id: uuid.UUID | None
     parent: fields.ForeignKeyNullableRelation[TargetGroup] = fields.ForeignKeyField(
         "models.TargetGroup",
         related_name="children",
@@ -125,6 +128,7 @@ class TargetGroupMembership(Model):
 
 
 class Monitor(RealmOwnedModel):
+    target_id: uuid.UUID
     target: fields.ForeignKeyRelation[Target] = fields.ForeignKeyField(
         "models.Target", related_name="monitors", on_delete=fields.RESTRICT
     )
