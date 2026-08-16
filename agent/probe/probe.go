@@ -210,13 +210,20 @@ func detectSafely(ctx context.Context, detector AvailabilityDetector) (available
 
 func DecodeConfigurationStrict[T any](raw json.RawMessage) (T, error) {
 	var configuration T
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&configuration); err != nil {
-		return configuration, fmt.Errorf("decode configuration: %w", err)
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return configuration, errors.New("configuration contains trailing data")
+	if err := DecodeConfigurationStrictInto(raw, &configuration); err != nil {
+		return configuration, err
 	}
 	return configuration, nil
+}
+
+func DecodeConfigurationStrictInto(raw json.RawMessage, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return fmt.Errorf("decode configuration: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("configuration contains trailing data")
+	}
+	return nil
 }

@@ -107,7 +107,9 @@ async def create_monitor(
     if not target.enabled:
         raise ResourceStateError("Disabled targets cannot receive new monitors")
     _validate_schedule(interval_seconds, timeout_seconds)
-    normalized = serialize_probe_configuration(probe_type, configuration)
+    normalized = serialize_probe_configuration(
+        probe_type, configuration, timeout_seconds=timeout_seconds
+    )
     return await Monitor.create(
         realm=realm,
         target=target,
@@ -135,7 +137,9 @@ async def update_monitor_behavior(
     if not target.enabled:
         raise ResourceStateError("Disabled targets cannot receive monitors")
     _validate_schedule(interval_seconds, timeout_seconds)
-    normalized = serialize_probe_configuration(probe_type, configuration)
+    normalized = serialize_probe_configuration(
+        probe_type, configuration, timeout_seconds=timeout_seconds
+    )
     old_target_id = monitor.target_id
     changed = (
         old_target_id != target.id

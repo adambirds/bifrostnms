@@ -68,3 +68,19 @@ def test_probe_configuration_serialization_is_normalized() -> None:
         "port": 53,
         "recursion_desired": True,
     }
+
+
+def test_icmp_configuration_materializes_schedule_safe_defaults() -> None:
+    assert serialize_probe_configuration(ProbeType.ICMP, {}, timeout_seconds=2) == {
+        "schema_version": 1,
+        "packet_count": 20,
+        "packet_interval_ms": 50,
+        "per_packet_timeout_ms": 1050,
+        "payload_size_bytes": 56,
+        "address_family": "auto",
+        "maximum_packet_loss_percent": None,
+        "maximum_average_rtt_ms": None,
+    }
+
+    with pytest.raises(ValueError, match="does not fit"):
+        serialize_probe_configuration(ProbeType.ICMP, {}, timeout_seconds=0)
