@@ -142,6 +142,10 @@ Important deployment settings:
 
 Production WebAuthn requires a secure HTTPS origin.
 
+The complete production cookie, TLS, reverse-proxy, Redis and WebAuthn checklist
+is in `docs/deployment/authentication.md`. Production-mode settings are validated
+at API startup so insecure development defaults cannot be deployed accidentally.
+
 ## Main code locations
 
 - `backend/bifrostnms/api/auth.py` - signup/login/logout/current-user/realm switching

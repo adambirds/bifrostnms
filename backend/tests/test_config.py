@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from bifrostnms.config import Settings
 
 
@@ -20,3 +23,22 @@ def test_cors_origins_are_parsed_and_trimmed() -> None:
     )
 
     assert settings.cors_origin_list == ["http://localhost:3000", "http://localhost:3001"]
+
+
+def test_production_rejects_insecure_authentication_defaults() -> None:
+    with pytest.raises(ValidationError, match="COOKIE_SECURE must be true"):
+        Settings(env="production")
+
+
+def test_production_accepts_explicit_secure_authentication_settings() -> None:
+    settings = Settings(
+        env="production",
+        cookie_secure=True,
+        auth_encryption_key="a" * 32,
+        auth_frontend_url="https://auth.example.com",
+        webauthn_origin="https://auth.example.com",
+        webauthn_rp_id="auth.example.com",
+        cors_origins="https://app.example.com,https://auth.example.com",
+    )
+
+    assert settings.env == "production"

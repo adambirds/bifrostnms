@@ -397,7 +397,7 @@ Acceptance criteria:
 
 ### Stage 1: Identity, authentication and realm tenancy
 
-**Status: In progress**
+**Status: Validated**
 
 Objective: provide secure identity and realm selection as a foundation for every
 management and monitoring API.
@@ -406,10 +406,9 @@ Current foundation includes password authentication, Redis sessions, realm
 memberships, installation superusers, TOTP/recovery codes, WebAuthn/passkeys and
 the separate authentication frontend.
 
-Remaining acceptance work includes reviewing realm authorization boundaries,
-defining audit requirements, and validating production session/WebAuthn
-deployment guidance. User-facing email verification and password-reset flows
-are implemented.
+Realm authorization boundaries, audit requirements, production authentication
+deployment guidance, email verification and password-reset flows are
+implemented and validated.
 
 Acceptance criteria:
 
