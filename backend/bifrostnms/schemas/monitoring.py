@@ -191,7 +191,7 @@ class DnsProbeConfiguration(ProbeConfiguration):
     def normalize_query_name(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        normalized = value.strip().rstrip(".")
+        normalized = value.strip().rstrip(".").lower()
         if not normalized or any(ord(character) < 32 or ord(character) == 127 for character in normalized):
             raise ValueError("query_name is invalid")
         return normalized
