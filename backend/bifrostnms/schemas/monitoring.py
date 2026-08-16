@@ -182,7 +182,10 @@ class DnsProbeConfiguration(ProbeConfiguration):
     @field_validator("transport")
     @classmethod
     def validate_transport(cls, value: str, info: ValidationInfo) -> str:
-        if info.data.get("resolver_mode", "system") == "system" and value != "udp_with_tcp_fallback":
+        if (
+            info.data.get("resolver_mode", "system") == "system"
+            and value != "udp_with_tcp_fallback"
+        ):
             raise ValueError("system DNS resolver mode uses platform resolver transport behavior")
         return value
 
@@ -192,7 +195,9 @@ class DnsProbeConfiguration(ProbeConfiguration):
         if value is None:
             return None
         normalized = value.strip().rstrip(".").lower()
-        if not normalized or any(ord(character) < 32 or ord(character) == 127 for character in normalized):
+        if not normalized or any(
+            ord(character) < 32 or ord(character) == 127 for character in normalized
+        ):
             raise ValueError("query_name is invalid")
         return normalized
 
