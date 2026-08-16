@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	ConfigurationSchemaVersion uint32 = 1
-	ResultSchemaVersion        uint32 = 1
-	DefaultMaximumResponseBytes       = 1 << 20
-	MaximumResponseBytes              = 4 << 20
+	ConfigurationSchemaVersion  uint32 = 1
+	ResultSchemaVersion         uint32 = 1
+	DefaultMaximumResponseBytes        = 1 << 20
+	MaximumResponseBytes               = 4 << 20
 )
 
 type AddressFamily string

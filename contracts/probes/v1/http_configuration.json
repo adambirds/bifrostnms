@@ -13,7 +13,10 @@
   },
   "expected_status_codes": [200, 204],
   "expected_header_values": [
-    {"name": "Content-Type", "value": "application/json"}
+    {
+      "name": "Content-Type",
+      "value": "application/json"
+    }
   ],
   "expected_body_contains": ["ok"],
   "maximum_response_bytes": 1048576,
