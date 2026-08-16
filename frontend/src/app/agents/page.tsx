@@ -1,6 +1,7 @@
-import {AgentForm} from '@/app/agents/agent-form'
-import {authenticatedApiFetch} from '@/lib/auth'
-import type {Agent, AgentStatus} from '@/lib/monitoring'
+import { AgentForm } from '@/app/agents/agent-form'
+import { EnrolmentControl } from '@/app/agents/enrolment-control'
+import { authenticatedApiFetch } from '@/lib/auth'
+import type { Agent, AgentStatus } from '@/lib/monitoring'
 
 export default async function AgentsPage() {
   const agents = await authenticatedApiFetch<Agent[]>('/monitoring/agents')
@@ -17,14 +18,19 @@ export default async function AgentsPage() {
         <div>
           <span className="eyebrow">Monitoring locations</span>
           <h1>Agents</h1>
-          <p>Distributed vantage points that execute probes and buffer results locally.</p>
+          <p>
+            Distributed vantage points that execute probes and buffer results
+            locally.
+          </p>
         </div>
       </div>
       <section className="panel">
         <div className="panel-heading">
           <div>
             <h2>Add agent</h2>
-            <p className="muted">Create the agent record before issuing its enrolment token.</p>
+            <p className="muted">
+              Create the agent record before issuing its enrolment token.
+            </p>
           </div>
         </div>
         <AgentForm />
@@ -44,6 +50,7 @@ export default async function AgentsPage() {
                   <th>Host</th>
                   <th>Queue</th>
                   <th>Description</th>
+                  <th>Enrolment</th>
                 </tr>
               </thead>
               <tbody>
@@ -51,11 +58,26 @@ export default async function AgentsPage() {
                   const status = statusByAgent.get(agent.id)
                   return (
                     <tr key={agent.id}>
-                      <td><strong>{agent.name}</strong></td>
-                      <td><span className={status?.online ? 'status-ok' : 'status-danger'}>{status?.online ? 'Online' : 'Offline'}</span></td>
-                      <td className="muted">{status?.hostname ?? 'Not enrolled'}</td>
+                      <td>
+                        <strong>{agent.name}</strong>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            status?.online ? 'status-ok' : 'status-danger'
+                          }
+                        >
+                          {status?.online ? 'Online' : 'Offline'}
+                        </span>
+                      </td>
+                      <td className="muted">
+                        {status?.hostname ?? 'Not enrolled'}
+                      </td>
                       <td>{status?.queue_depth ?? 0}</td>
                       <td className="muted">{agent.description ?? '—'}</td>
+                      <td>
+                        <EnrolmentControl agentId={agent.id} />
+                      </td>
                     </tr>
                   )
                 })}
@@ -65,7 +87,10 @@ export default async function AgentsPage() {
         ) : (
           <div className="empty-state">
             <strong>No agents yet</strong>
-            <span>Create an agent for each network vantage point you want to monitor from.</span>
+            <span>
+              Create an agent for each network vantage point you want to monitor
+              from.
+            </span>
           </div>
         )}
       </section>

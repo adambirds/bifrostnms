@@ -3,9 +3,19 @@
 import { revalidatePath } from 'next/cache'
 
 import { ApiRequestError, authenticatedApiRequest } from '@/lib/auth'
-import type { Agent } from '@/lib/monitoring'
+import type { Agent, AgentEnrolmentToken } from '@/lib/monitoring'
 
 export type AgentFormState = { error: string | null }
+
+export type AgentEnrolmentState = {
+  error: string | null
+  token: AgentEnrolmentToken | null
+}
+
+export const initialAgentEnrolmentState: AgentEnrolmentState = {
+  error: null,
+  token: null,
+}
 
 export async function createAgentAction(
   _previousState: AgentFormState,
@@ -38,4 +48,26 @@ export async function createAgentAction(
   revalidatePath('/')
   revalidatePath('/agents')
   return { error: null }
+}
+
+export async function issueAgentEnrolmentAction(
+  agentId: string,
+  _previousState: AgentEnrolmentState,
+  _formData: FormData,
+): Promise<AgentEnrolmentState> {
+  try {
+    const token = await authenticatedApiRequest<AgentEnrolmentToken>(
+      `/monitoring/agents/${agentId}/enrolment-tokens`,
+      { method: 'POST' },
+    )
+    return { error: null, token }
+  } catch (error) {
+    return {
+      error:
+        error instanceof ApiRequestError
+          ? error.message
+          : 'The enrolment token could not be issued.',
+      token: null,
+    }
+  }
 }

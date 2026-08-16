@@ -11,6 +11,13 @@ export type Agent = {
   updated_at: string
 }
 
+export type AgentEnrolmentToken = {
+  id: string
+  agent_id: string
+  enrolment_token: string
+  expires_at: string
+}
+
 export type Target = {
   id: string
   realm_id: string
