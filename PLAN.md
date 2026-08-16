@@ -475,10 +475,17 @@ Acceptance criteria:
 
 ### Stage 4: Agent enrolment and protocol
 
-**Status: Not started**
+**Status: Validated**
 
 Objective: securely establish agent identity and exchange versioned desired
 configuration and capability information.
+
+Agents enrol using short-lived, single-use tokens and receive opaque,
+individually revocable credentials whose secrets are stored only as digests.
+The V1 protocol now provides bounded capability and heartbeat reporting,
+derived online status, deterministic immutable configuration snapshots,
+conditional retrieval and idempotent activation acknowledgement. Shared JSON
+contracts are validated by both the Python control plane and native Go types.
 
 Deliverables:
 
