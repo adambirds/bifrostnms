@@ -15,11 +15,6 @@ export type GroupActionState = {
   success: string | null
 }
 
-export const initialGroupActionState: GroupActionState = {
-  error: null,
-  success: null,
-}
-
 function actionError(error: unknown, fallback: string): GroupActionState {
   return {
     error: error instanceof ApiRequestError ? error.message : fallback,
