@@ -57,6 +57,7 @@ export async function authenticatedApiRequest<T>(
   if (!response.ok) {
     throw new ApiRequestError(response.status, await readApiError(response))
   }
+  if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }
 
