@@ -35,6 +35,28 @@ func TestProbeExplicitResolverReturnsTypedAnswer(t *testing.T) {
 	}
 }
 
+func TestProbeSystemResolverUsesInjectedPlatformResolver(t *testing.T) {
+	resolverAddress, stop := startUDPResolver(t, false)
+	defer stop()
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "udp", resolverAddress)
+		},
+	}
+	configuration := json.RawMessage(`{"schema_version":1,"resolver_mode":"system","resolver_port":53,"transport":"udp_with_tcp_fallback","query_name":"example.com","query_type":"A","recursion_desired":true,"expected_response_codes":["NOERROR"],"expected_answers":[{"value":"192.0.2.10"}]}`)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result := New(resolver).Run(ctx, probe.Request{TargetAddress: "ignored.example", Configuration: configuration})
+	if result.ExecutionStatus != probe.ExecutionCompleted || result.Assessment != probe.AssessmentHealthy {
+		t.Fatalf("unexpected system resolver outcome: %#v", result)
+	}
+	typed := result.ProbeResult.(Result)
+	if typed.ResolverAddress != nil || typed.AnswerCount != 1 || typed.Answers[0].Value != "192.0.2.10" {
+		t.Fatalf("unexpected system resolver result: %#v", typed)
+	}
+}
+
 func TestProbeFallsBackToTCPWhenUDPResponseIsTruncated(t *testing.T) {
 	resolverAddress, stop := startTruncatingResolver(t)
 	defer stop()
