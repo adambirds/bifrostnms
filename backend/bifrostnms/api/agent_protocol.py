@@ -1,20 +1,25 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from bifrostnms.agents import (
     AgentAuthentication,
     AgentProtocolError,
     EnrolmentError,
+    acknowledge_configuration,
     authenticate_agent,
     exchange_enrolment_token,
+    get_or_create_configuration,
     record_heartbeat,
     require_supported_protocol,
 )
 from bifrostnms.auth.audit import AuditActorType, AuditOutcome, record_audit_event
 from bifrostnms.config import get_settings
 from bifrostnms.schemas.agent_protocol import (
+    AgentConfigurationAcknowledgement,
+    AgentConfigurationAcknowledgementResponse,
+    AgentConfigurationResponse,
     AgentEnrolmentRequest,
     AgentEnrolmentResponse,
     AgentHeartbeatRequest,
@@ -91,4 +96,51 @@ async def heartbeat(
         configuration_update_available=(
             configuration.desired_revision != payload.active_configuration_revision
         ),
+    )
+
+
+@router.get(
+    "/config",
+    response_model=AgentConfigurationResponse,
+    responses={304: {"description": "The active configuration is current."}},
+)
+async def get_configuration(
+    authentication: Annotated[AgentAuthentication, Depends(authenticate_agent)],
+    protocol_version: Annotated[int, Query(ge=1)] = 1,
+    active_revision: Annotated[int | None, Query(ge=0)] = None,
+    content_hash: str | None = None,
+) -> AgentConfigurationResponse | Response:
+    require_supported_protocol(protocol_version)
+    result = await get_or_create_configuration(authentication)
+    response_hash = f"sha256:{result.snapshot.content_hash}"
+    if active_revision == result.snapshot.revision and content_hash == response_hash:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED)
+    return AgentConfigurationResponse(
+        agent_id=authentication.agent.id,
+        realm_id=authentication.realm.id,
+        revision=result.snapshot.revision,
+        content_hash=response_hash,
+        generated_at=result.snapshot.created_at,
+        monitors=result.content["monitors"],
+    )
+
+
+@router.post(
+    "/config/acknowledge",
+    response_model=AgentConfigurationAcknowledgementResponse,
+)
+async def acknowledge_agent_configuration(
+    payload: AgentConfigurationAcknowledgement,
+    authentication: Annotated[AgentAuthentication, Depends(authenticate_agent)],
+) -> AgentConfigurationAcknowledgementResponse:
+    require_supported_protocol(payload.protocol_version)
+    state = await acknowledge_configuration(
+        authentication=authentication,
+        revision=payload.revision,
+        content_hash=payload.content_hash,
+        activated_at=payload.activated_at,
+    )
+    return AgentConfigurationAcknowledgementResponse(
+        acknowledged_revision=state.acknowledged_revision,
+        acknowledged_content_hash=f"sha256:{state.acknowledged_content_hash}",
     )

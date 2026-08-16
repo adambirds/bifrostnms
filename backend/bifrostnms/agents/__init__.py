@@ -1,3 +1,8 @@
+from .configuration import (
+    ConfigurationResult,
+    acknowledge_configuration,
+    get_or_create_configuration,
+)
 from .credentials import (
     AgentAuthentication,
     EnrolmentError,
@@ -20,9 +25,12 @@ __all__ = [
     "MINIMUM_PROTOCOL_VERSION",
     "AgentAuthentication",
     "AgentProtocolError",
+    "ConfigurationResult",
     "EnrolmentError",
+    "acknowledge_configuration",
     "authenticate_agent",
     "exchange_enrolment_token",
+    "get_or_create_configuration",
     "issue_enrolment_token",
     "record_heartbeat",
     "require_supported_protocol",

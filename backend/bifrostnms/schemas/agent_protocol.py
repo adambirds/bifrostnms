@@ -132,3 +132,40 @@ class AgentProtocolErrorBody(BaseModel):
 
 class AgentProtocolErrorResponse(BaseModel):
     error: AgentProtocolErrorBody
+
+
+class AgentMonitorConfiguration(BaseModel):
+    monitor_id: UUID
+    target_id: UUID
+    monitor_revision: int
+    target_address: str
+    probe_type: str
+    probe_schema_version: int
+    interval_seconds: int
+    timeout_seconds: int
+    missed_run_policy: Literal["skip"] = "skip"
+    configuration: dict[str, Any]
+
+
+class AgentConfigurationResponse(BaseModel):
+    protocol_version: Literal[1] = 1
+    configuration_schema_version: Literal[1] = 1
+    agent_id: UUID
+    realm_id: UUID
+    revision: int
+    content_hash: str
+    generated_at: datetime
+    monitors: list[AgentMonitorConfiguration]
+
+
+class AgentConfigurationAcknowledgement(BaseModel):
+    protocol_version: int = Field(ge=1)
+    revision: int = Field(ge=1)
+    content_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    activated_at: AwareDatetime
+
+
+class AgentConfigurationAcknowledgementResponse(BaseModel):
+    protocol_version: Literal[1] = 1
+    acknowledged_revision: int
+    acknowledged_content_hash: str

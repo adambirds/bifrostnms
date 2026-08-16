@@ -71,13 +71,24 @@ def _validate_schedule(interval_seconds: int, timeout_seconds: int) -> None:
 
 async def _bump_configuration_revisions(agent_ids: Iterable[UUID], realm_id: UUID) -> None:
     for agent_id in set(agent_ids):
-        state, _ = await AgentConfigurationState.get_or_create(
-            agent_id=agent_id,
-            defaults={"realm_id": realm_id},
-        )
-        state.desired_revision += 1
-        state.desired_content_hash = ""
-        await state.save(update_fields=["desired_revision", "desired_content_hash", "updated_at"])
+        async with in_transaction() as connection:
+            state, _ = await AgentConfigurationState.get_or_create(
+                agent_id=agent_id,
+                defaults={"realm_id": realm_id},
+                using_db=connection,
+            )
+            state = (
+                await AgentConfigurationState.filter(id=state.id)
+                .using_db(connection)
+                .select_for_update()
+                .get()
+            )
+            state.desired_revision += 1
+            state.desired_content_hash = ""
+            await state.save(
+                update_fields=["desired_revision", "desired_content_hash", "updated_at"],
+                using_db=connection,
+            )
 
 
 async def create_monitor(
