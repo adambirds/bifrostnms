@@ -36,19 +36,22 @@ export async function updateMonitorAction(
   const probeType = rawProbeType as ProbeType
 
   try {
-    await authenticatedApiRequest<Monitor>(`/monitoring/monitors/${monitorId}`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        target_id: targetId,
-        name,
-        description: description || null,
-        probe_type: probeType,
-        interval_seconds: requiredNumber(formData, 'interval_seconds'),
-        timeout_seconds: requiredNumber(formData, 'timeout_seconds'),
-        configuration: buildMonitorConfiguration(probeType, formData),
-      }),
-    })
+    await authenticatedApiRequest<Monitor>(
+      `/monitoring/monitors/${monitorId}`,
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          target_id: targetId,
+          name,
+          description: description || null,
+          probe_type: probeType,
+          interval_seconds: requiredNumber(formData, 'interval_seconds'),
+          timeout_seconds: requiredNumber(formData, 'timeout_seconds'),
+          configuration: buildMonitorConfiguration(probeType, formData),
+        }),
+      },
+    )
   } catch (error) {
     return {
       error:
