@@ -11,7 +11,7 @@ from bifrostnms.api.dashboard import _history_range
 from bifrostnms.config import Settings
 from bifrostnms.models import ProbeType
 from bifrostnms.monitoring.dashboard import _availability_state, _headline
-from bifrostnms.schemas.dashboard import MonitorAgentState
+from bifrostnms.schemas.dashboard import AvailabilityState, MonitorAgentState
 
 
 def settings() -> Settings:
@@ -22,14 +22,14 @@ def settings() -> Settings:
     )
 
 
-def state(name: str) -> MonitorAgentState:
+def state(name: AvailabilityState) -> MonitorAgentState:
     return MonitorAgentState(
         monitor_id=uuid4(),
         monitor_name="Web",
         agent_id=uuid4(),
         agent_name="London",
         probe_type=ProbeType.HTTP,
-        availability_state=name,  # type: ignore[arg-type]
+        availability_state=name,
         desired_config_revision=2,
         acknowledged_config_revision=2,
     )
