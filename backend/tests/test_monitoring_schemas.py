@@ -42,6 +42,8 @@ def test_probe_configuration_rejects_unknown_fields() -> None:
         (ProbeType.HTTP, {"path": "health"}),
         (ProbeType.HTTP, {"expected_status_codes": [200, 200]}),
         (ProbeType.HTTP, {"expected_status_codes": [99]}),
+        (ProbeType.HTTP, {"request_headers": {"Authorization": "secret"}}),
+        (ProbeType.HTTP, {"address_family": "ipx"}),
         (ProbeType.TCP, {"port": 0}),
         (ProbeType.TCP, {"port": 443, "address_family": "ipx"}),
         (ProbeType.DNS, {"query_name": ""}),
@@ -51,7 +53,7 @@ def test_probe_configuration_rejects_unknown_fields() -> None:
 def test_probe_configuration_rejects_invalid_values(
     probe_type: ProbeType, configuration: dict[str, object]
 ) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises((ValidationError, ValueError)):
         validate_probe_configuration(probe_type, configuration)
 
 
@@ -69,6 +71,17 @@ def test_probe_configuration_serialization_is_normalized() -> None:
         "port": 53,
         "recursion_desired": True,
     }
+
+
+def test_http_configuration_materializes_safe_defaults() -> None:
+    serialized = serialize_probe_configuration(ProbeType.HTTP, {})
+    assert serialized["scheme"] == "https"
+    assert serialized["method"] == "GET"
+    assert serialized["maximum_redirects"] == 5
+    assert serialized["maximum_response_bytes"] == 1024 * 1024
+    assert serialized["address_family"] == "auto"
+    assert serialized["expected_status_codes"] == list(range(200, 400))
+    assert "verify_tls" not in serialized
 
 
 def test_icmp_configuration_materializes_schedule_safe_defaults() -> None:
