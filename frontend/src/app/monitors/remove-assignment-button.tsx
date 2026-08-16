@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 
 import {
-  initialMonitorAssignmentState,
+  type MonitorAssignmentState,
   removeMonitorAgentAssignmentAction,
   removeMonitorAgentGroupAssignmentAction,
 } from '@/app/monitors/assignment-actions'
@@ -12,6 +12,11 @@ type RemoveAssignmentButtonProps = {
   kind: 'agent' | 'group'
   monitorId: string
   resourceId: string
+}
+
+const initialMonitorAssignmentState: MonitorAssignmentState = {
+  error: null,
+  success: null,
 }
 
 export function RemoveAssignmentButton({
