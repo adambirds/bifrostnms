@@ -46,6 +46,7 @@ def run() -> None:
     frontend_dirs = [
         "frontend",
         "auth-frontend",
+        "website",
     ]
 
     for frontend_dir in frontend_dirs:
@@ -84,7 +85,7 @@ def run() -> None:
 
     linter_config.external_linter(
         "templates",
-        ["tools/check-templates", "--roots", "frontend", "auth-frontend"],
+        ["tools/check-templates", "--roots", "frontend", "auth-frontend", "website"],
         ["hbs", "html"],
         description="Custom linter checks whitespace formatting of HTML templates",
         fix_arg="--fix",

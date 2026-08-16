@@ -36,7 +36,9 @@ Detailed architecture documents:
 FastAPI exposes browser, management, agent enrolment, configuration, ingestion
 and query APIs. Tortoise ORM maps ordinary relational models to PostgreSQL and
 provides migrations. Reviewed direct SQL may be used where TimescaleDB ingestion
-or analytics would be poorly served by row-at-a-time ORM operations.
+or analytics would be poorly served by row-at-a-time ORM operations. Direct SQL
+must remain static with request-derived values supplied only through database
+parameters; query text must not be assembled from request-controlled values.
 
 ### Agent
 
@@ -52,10 +54,14 @@ dependencies. Standard probes must not rely on host command-line utilities.
 
 The separate Next.js 16 App Router applications are:
 
-- `auth-frontend/` for login, account and credential security; and
-- `frontend/` for monitoring configuration, status and visualization.
+- `auth-frontend/` for login, account and credential security;
+- `frontend/` for monitoring configuration, current state and visualization; and
+- `website/` for the public product site and end-user documentation.
 
-Both use strict TypeScript and share the FastAPI/Redis browser-session model.
+The authentication and dashboard applications share the FastAPI/Redis browser-
+session model. The public website is separately deployable and does not require
+an authenticated session for its documentation routes. All three applications
+use strict TypeScript.
 
 ## Data
 
@@ -68,3 +74,8 @@ Both use strict TypeScript and share the FastAPI/Redis browser-session model.
 Retention, compression, aggregation and the exact heterogeneous measurement
 schema must be designed and documented before monitoring models are implemented.
 Realm isolation and the V1 graph query patterns are requirements of that design.
+
+Dashboard historical queries preserve the typed probe-specific result model and
+must distinguish a missing observation from a successful observation whose
+measurement is zero. Cross-agent graphing is keyed by agent identity so series
+from different monitoring vantage points are never implicitly joined.
