@@ -1,0 +1,29 @@
+.probe-configuration {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #213253;
+  border-radius: 12px;
+  background: #08142b;
+}
+
+.probe-configuration h3 {
+  margin: 0.25rem 0 0;
+}
+
+.monitor-probe-fields {
+  align-items: end;
+}
+
+.checkbox-label {
+  display: flex !important;
+  min-height: 42px;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.65rem !important;
+}
+
+.checkbox-label input {
+  width: auto !important;
+  margin: 0;
+}
