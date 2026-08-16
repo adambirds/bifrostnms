@@ -13,6 +13,7 @@ from .credentials import (
     revoke_enrolment_token,
 )
 from .heartbeat import record_heartbeat
+from .observations import ingest_observations
 from .protocol import (
     MAXIMUM_PROTOCOL_VERSION,
     MINIMUM_PROTOCOL_VERSION,
@@ -31,6 +32,7 @@ __all__ = [
     "authenticate_agent",
     "exchange_enrolment_token",
     "get_or_create_configuration",
+    "ingest_observations",
     "issue_enrolment_token",
     "record_heartbeat",
     "require_supported_protocol",

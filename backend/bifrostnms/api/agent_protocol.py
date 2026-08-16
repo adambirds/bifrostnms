@@ -11,6 +11,7 @@ from bifrostnms.agents import (
     authenticate_agent,
     exchange_enrolment_token,
     get_or_create_configuration,
+    ingest_observations,
     record_heartbeat,
     require_supported_protocol,
 )
@@ -24,9 +25,12 @@ from bifrostnms.schemas.agent_protocol import (
     AgentEnrolmentResponse,
     AgentHeartbeatRequest,
     AgentHeartbeatResponse,
+    AgentObservationUpload,
+    AgentObservationUploadResponse,
 )
 
 router = APIRouter(prefix="/agent", tags=["agent protocol"])
+MAXIMUM_OBSERVATION_UPLOAD_BYTES = 1 << 20
 
 
 @router.post(
@@ -148,3 +152,35 @@ async def acknowledge_agent_configuration(
         acknowledged_revision=state.acknowledged_revision,
         acknowledged_content_hash=f"sha256:{state.acknowledged_content_hash}",
     )
+
+
+@router.post("/observations", response_model=AgentObservationUploadResponse)
+async def upload_observations(
+    payload: AgentObservationUpload,
+    request: Request,
+    authentication: Annotated[AgentAuthentication, Depends(authenticate_agent)],
+) -> AgentObservationUploadResponse:
+    content_length = request.headers.get("content-length")
+    try:
+        exceeds_limit = (
+            content_length is not None and int(content_length) > MAXIMUM_OBSERVATION_UPLOAD_BYTES
+        )
+    except ValueError:
+        exceeds_limit = True
+    if exceeds_limit:
+        raise AgentProtocolError(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            code="observation_batch_too_large",
+            message="The serialized observation batch exceeds 1 MiB.",
+            retryable=True,
+        )
+    require_supported_protocol(payload.protocol_version)
+    if payload.result_schema_version != 1:
+        raise AgentProtocolError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="unsupported_result_schema",
+            message="The observation result schema version is unsupported.",
+            retryable=False,
+        )
+    results = await ingest_observations(authentication=authentication, upload=payload)
+    return AgentObservationUploadResponse(batch_id=payload.batch_id, results=results)
