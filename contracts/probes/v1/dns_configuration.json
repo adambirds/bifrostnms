@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "resolver_mode": "explicit",
+  "resolver_address": "127.0.0.1",
+  "resolver_port": 5353,
+  "transport": "udp_with_tcp_fallback",
+  "query_name": "example.com",
+  "query_type": "A",
+  "recursion_desired": true,
+  "expected_response_codes": ["NOERROR"],
+  "expected_answers": [
+    {
+      "value": "192.0.2.10"
+    }
+  ]
+}
