@@ -505,7 +505,7 @@ Acceptance criteria:
 
 ### Stage 5: Agent SQLite storage and synchronization
 
-**Status: Not started**
+**Status: Validated**
 
 Objective: make the agent durably autonomous during control-plane outages.
 
