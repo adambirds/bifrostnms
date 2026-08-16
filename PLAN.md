@@ -599,7 +599,7 @@ Acceptance criteria:
 
 ### Stage 9: Dashboard and SmokePing-style visualization
 
-**Status: Implemented**
+**Status: Validated**
 
 Objective: make distributed measurements understandable and useful to operators.
 
