@@ -94,8 +94,11 @@ func (t NativeTransport) Exchange(
 		if contextDeadline, ok := ctx.Deadline(); ok && contextDeadline.Before(deadline) {
 			deadline = contextDeadline
 		}
-		if err := connection.SetDeadline(deadline); err != nil {
-			return nil, fmt.Errorf("set ICMP packet deadline: %w", err)
+		// Only bound reads. Using SetDeadline also sets the write deadline, which means
+		// a read timeout at the next packet boundary leaves an already-expired write
+		// deadline on the socket and causes the following echo request to fail locally.
+		if err := connection.SetReadDeadline(deadline); err != nil {
+			return nil, fmt.Errorf("set ICMP packet read deadline: %w", err)
 		}
 		read, _, readErr := connection.ReadFrom(buffer)
 		if readErr != nil {
