@@ -207,12 +207,53 @@ async def test_get_session_user_refreshes_valid_session() -> None:
         patch("bifrostnms.auth.security.get_settings", return_value=settings),
         patch("bifrostnms.auth.security.get_redis", return_value=redis),
         patch("bifrostnms.auth.security.User.filter", return_value=users),
+        patch("bifrostnms.auth.security._initial_realm_id", new=AsyncMock(return_value=None)),
     ):
         result_user, result_session = await get_session_user(make_request(cookie="token"))
 
     assert result_user is user
     assert result_session.user_id == user.id
     redis.set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_session_user_repairs_missing_realm_context() -> None:
+    user = cast(User, SimpleNamespace(id=uuid4(), session_version=1))
+    realm_id = uuid4()
+    stored = SessionData(
+        user_id=user.id,
+        active_realm_id=None,
+        auth_method="password",
+        created_at=datetime.now(UTC),
+        last_activity=datetime.now(UTC),
+        user_agent="pytest",
+        ip_address=None,
+        redis_key="unused",
+    )
+    redis = AsyncMock()
+    redis.get.return_value = stored.to_json()
+    users = MagicMock()
+    users.first = AsyncMock(return_value=user)
+    settings = SimpleNamespace(
+        session_cookie_name="bifrost_session",
+        session_key_prefix="bifrostnms:session:",
+        session_ttl_seconds=3600,
+    )
+
+    with (
+        patch("bifrostnms.auth.security.get_settings", return_value=settings),
+        patch("bifrostnms.auth.security.get_redis", return_value=redis),
+        patch("bifrostnms.auth.security.User.filter", return_value=users),
+        patch(
+            "bifrostnms.auth.security._initial_realm_id",
+            new=AsyncMock(return_value=realm_id),
+        ),
+    ):
+        _, session = await get_session_user(make_request(cookie="token"))
+
+    assert session.active_realm_id == realm_id
+    persisted = SessionData.from_json(redis.set.await_args.args[1], redis_key="session-key")
+    assert persisted.active_realm_id == realm_id
 
 
 @pytest.mark.asyncio
