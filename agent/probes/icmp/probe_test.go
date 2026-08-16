@@ -109,6 +109,26 @@ func TestProbeClassifiesCancellationWithoutLeakingRawError(t *testing.T) {
 	}
 }
 
+func TestProbeClassifiesTimeoutWithoutLeakingRawError(t *testing.T) {
+	result := New(&fakeTransport{err: context.DeadlineExceeded}).Run(
+		context.Background(), probeRequest(),
+	)
+	if result.ErrorCategory == nil || *result.ErrorCategory != probe.ErrorTimeout ||
+		result.ErrorCode != "icmp_timeout" || result.ErrorMessage != "ICMP probe timed out." {
+		t.Fatalf("timeout result = %#v", result)
+	}
+}
+
+func TestProbeClassifiesUnreachableNetworkWithoutLeakingRawError(t *testing.T) {
+	result := New(&fakeTransport{err: errors.New("network is unreachable: private detail")}).Run(
+		context.Background(), probeRequest(),
+	)
+	if result.ErrorCategory == nil || *result.ErrorCategory != probe.ErrorConnection ||
+		result.ErrorCode != "icmp_network_error" || result.ErrorMessage != "ICMP exchange failed." {
+		t.Fatalf("unreachable result = %#v", result)
+	}
+}
+
 func TestNativeTransportResolvesRequestedAddressFamily(t *testing.T) {
 	transport := NativeTransport{}
 	ipv4Target, err := transport.resolve(context.Background(), "192.0.2.1", AddressFamilyIPv4)
