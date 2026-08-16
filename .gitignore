@@ -59,6 +59,9 @@ coverage.out
 .DS_Store
 .idea/
 
+# Local development state
+.local/
+
 # Local AI state
 .claude/
 .codex/
