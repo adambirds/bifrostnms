@@ -231,7 +231,7 @@ func (s *Scheduler) start(parent context.Context, current *job, scheduledAt time
 		defer func() { <-s.workers }()
 		ctx, cancel := context.WithTimeout(parent, assignment.Timeout)
 		defer cancel()
-		result := implementation.Run(ctx, request)
+		result := runProbeSafely(ctx, implementation, request)
 		if err := result.Validate(); err != nil {
 			category := probe.ErrorInternal
 			now := time.Now().UTC()
@@ -247,6 +247,53 @@ func (s *Scheduler) start(parent context.Context, current *job, scheduledAt time
 		s.running[assignment.MonitorID] = false
 		s.mu.Unlock()
 	}()
+}
+
+func runProbeSafely(ctx context.Context, implementation probe.Probe, request probe.Request) (
+	result probe.Result,
+) {
+	startedAt := time.Now().UTC()
+	defer func() {
+		if recover() != nil {
+			category := probe.ErrorInternal
+			result = probe.Result{
+				StartedAt: startedAt, FinishedAt: time.Now().UTC(),
+				ExecutionStatus: probe.ExecutionFailed, Assessment: probe.AssessmentUnknown,
+				ErrorCategory: &category, ErrorCode: "probe_panic",
+				ErrorMessage: "Probe stopped after an internal failure.",
+			}
+		}
+	}()
+	return implementation.Run(ctx, request)
+}
+
+func (s *Scheduler) Run(
+	ctx context.Context, tickInterval time.Duration, reportMissed func([]MissedRun),
+) error {
+	if tickInterval <= 0 {
+		return errors.New("positive scheduler tick interval is required")
+	}
+	runContext, cancel := context.WithCancel(ctx)
+	defer func() {
+		cancel()
+		s.Wait()
+	}()
+	ticker := time.NewTicker(tickInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-runContext.Done():
+			return nil
+		case now := <-ticker.C:
+			missed, err := s.Tick(runContext, now.UTC())
+			if err != nil {
+				return err
+			}
+			if len(missed) > 0 && reportMissed != nil {
+				reportMissed(missed)
+			}
+		}
+	}
 }
 
 func (s *Scheduler) Results() <-chan Execution { return s.results }
