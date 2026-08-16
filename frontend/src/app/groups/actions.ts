@@ -133,3 +133,47 @@ export async function addTargetGroupMembershipAction(
   revalidatePath('/groups')
   return { error: null, success: 'Target added to group.' }
 }
+
+export async function removeAgentGroupMembershipAction(
+  groupId: string,
+  agentId: string,
+  previousState: GroupActionState,
+  formData: FormData,
+): Promise<GroupActionState> {
+  void previousState
+  void formData
+
+  try {
+    await authenticatedApiRequest<void>(
+      `/monitoring/agent-groups/${groupId}/agents/${agentId}`,
+      { method: 'DELETE' },
+    )
+  } catch (error) {
+    return actionError(error, 'The agent could not be removed from the group.')
+  }
+
+  revalidatePath('/groups')
+  return { error: null, success: 'Agent removed from group.' }
+}
+
+export async function removeTargetGroupMembershipAction(
+  groupId: string,
+  targetId: string,
+  previousState: GroupActionState,
+  formData: FormData,
+): Promise<GroupActionState> {
+  void previousState
+  void formData
+
+  try {
+    await authenticatedApiRequest<void>(
+      `/monitoring/target-groups/${groupId}/targets/${targetId}`,
+      { method: 'DELETE' },
+    )
+  } catch (error) {
+    return actionError(error, 'The target could not be removed from the group.')
+  }
+
+  revalidatePath('/groups')
+  return { error: null, success: 'Target removed from group.' }
+}
