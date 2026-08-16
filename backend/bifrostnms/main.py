@@ -9,6 +9,7 @@ from tortoise.contrib.fastapi import RegisterTortoise
 from bifrostnms.agents import AgentProtocolError
 from bifrostnms.api.agent_protocol import router as agent_protocol_router
 from bifrostnms.api.auth import router as auth_router
+from bifrostnms.api.dashboard import router as dashboard_router
 from bifrostnms.api.monitor_management import router as monitor_management_router
 from bifrostnms.api.monitoring import router as monitoring_router
 from bifrostnms.api.monitoring_relationships import router as monitoring_relationships_router
@@ -69,6 +70,7 @@ app.include_router(agent_protocol_router, prefix="/api/v1")
 app.include_router(monitoring_router, prefix="/api/v1")
 app.include_router(monitor_management_router, prefix="/api/v1")
 app.include_router(monitoring_relationships_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(two_factor_router, prefix="/api/v1")
 app.include_router(webauthn_router, prefix="/api/v1")
 app.include_router(security_router, prefix="/api/v1")
