@@ -1,3 +1,4 @@
 packages:
   - 'auth-frontend'
   - 'frontend'
+  - 'website'
