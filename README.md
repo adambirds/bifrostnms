@@ -60,6 +60,8 @@ Documentation:
 - `docs/architecture.md`
 - `docs/development/local-development.md`
 - `docs/development/database-migrations.md`
+- `docs/deployment/overview.md`
+- `docs/deployment/timescaledb.md`
 - `docs/architecture/authentication.md`
 - `CONTRIBUTING.md`
 - `AGENTS.md`
