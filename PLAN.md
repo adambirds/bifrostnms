@@ -527,7 +527,7 @@ Acceptance criteria:
 
 ### Stage 6: Native Go probe framework
 
-**Status: Not started**
+**Status: Validated**
 
 Objective: provide a typed, testable and extensible execution framework shared
 by all V1 probes.

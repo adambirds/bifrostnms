@@ -71,6 +71,27 @@ func TestRegistryRejectsDuplicateProbeAndReportsCapabilities(t *testing.T) {
 	}
 }
 
+func TestRegistryDetectsAvailabilityWithoutTrustingDetectorPanics(t *testing.T) {
+	registry, err := NewRegistry(fakeProbe{})
+	if err != nil {
+		t.Fatalf("create registry: %v", err)
+	}
+	available := registry.DetectCapabilities(context.Background(), map[Type]AvailabilityDetector{
+		TypeTCP: func(context.Context) bool { return true },
+	})
+	if !available[TypeTCP].Available {
+		t.Fatal("available runtime capability was not reported")
+	}
+	unavailable := registry.DetectCapabilities(
+		context.Background(), map[Type]AvailabilityDetector{
+			TypeTCP: func(context.Context) bool { panic("runtime detector failed") },
+		},
+	)
+	if unavailable[TypeTCP].Available {
+		t.Fatal("panicking runtime detector reported availability")
+	}
+}
+
 func TestResultValidationEnforcesCommonSemanticsAndBounds(t *testing.T) {
 	now := time.Now().UTC()
 	valid := Result{
