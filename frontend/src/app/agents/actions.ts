@@ -12,11 +12,6 @@ export type AgentEnrolmentState = {
   token: AgentEnrolmentToken | null
 }
 
-export const initialAgentEnrolmentState: AgentEnrolmentState = {
-  error: null,
-  token: null,
-}
-
 export async function createAgentAction(
   _previousState: AgentFormState,
   formData: FormData,
