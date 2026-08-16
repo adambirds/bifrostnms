@@ -658,9 +658,6 @@ implicitly approved merely because it appears in this list.
 
 Stage 0 must resolve at least these questions before dependent implementation:
 
-- Exact observation and measurement schema across heterogeneous probes.
-- Whether and how raw probe values coexist with aggregates.
-- TimescaleDB hypertable dimensions, indexes, retention and compression.
 - Historical behavior when targets, monitors, agents or realms are deleted.
 - Agent credential format, rotation and revocation.
 - Configuration versioning, validation and rollback semantics.
@@ -668,6 +665,9 @@ Stage 0 must resolve at least these questions before dependent implementation:
 - Agent clock skew detection and timestamp authority.
 - Capability negotiation across mixed agent versions.
 - Health-state derivation and missing-data semantics.
+
+The observation schema, raw/aggregate relationship and initial TimescaleDB
+strategy are settled in `docs/architecture/measurements.md`.
 
 ## Decision record
 
