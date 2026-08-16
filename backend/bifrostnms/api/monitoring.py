@@ -97,7 +97,12 @@ async def create_agent(payload: AgentCreate, request: Request) -> AgentResponse:
 )
 async def create_agent_enrolment_token(agent_id: UUID, request: Request) -> EnrolmentTokenResponse:
     authorization = await require_realm_permission(request, RealmPermission.MONITORING_MANAGE)
-    agent = await Agent.filter(id=agent_id, realm=authorization.realm, archived_at=None).first()
+    agent = await Agent.filter(
+        id=agent_id,
+        realm=authorization.realm,
+        enabled=True,
+        archived_at=None,
+    ).first()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
     token, raw_token = await issue_enrolment_token(realm=authorization.realm, agent=agent)
@@ -186,7 +191,9 @@ async def get_agent_status(agent_id: UUID, request: Request) -> AgentStatusRespo
     )
     return AgentStatusResponse(
         agent_id=agent.id,
-        online=agent.enabled and state.last_heartbeat_at >= online_cutoff,
+        online=(
+            agent.enabled and agent.archived_at is None and state.last_heartbeat_at >= online_cutoff
+        ),
         last_heartbeat_at=state.last_heartbeat_at,
         agent_version=state.agent_version,
         platform=state.platform,
