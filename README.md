@@ -4,11 +4,13 @@
 
 > See your network from everywhere.
 
-BifrostNMS is an open-source network monitoring platform inspired by the distributed monitoring model that made SmokePing so useful, rebuilt around a modern API, dedicated authentication application, dashboard, and lightweight Go agents.
+BifrostNMS is an open-source network monitoring platform inspired by the distributed monitoring model that made SmokePing so useful, rebuilt around a modern API, dedicated authentication application, monitoring dashboard, public documentation website, and lightweight Go agents.
 
 ## Architecture
 
 ```text
+Next.js 16 Public Website (3002)
+
 Next.js 16 Auth UI (3001) ----+
                               |
 Next.js 16 Dashboard (3000) --+--> FastAPI (8000) --> PostgreSQL / TimescaleDB
@@ -21,9 +23,10 @@ The monorepo contains:
 - `backend/` — FastAPI control plane using Tortoise ORM.
 - `auth-frontend/` — separate Next.js 16 App Router authentication/security application.
 - `frontend/` — Next.js 16 App Router monitoring dashboard.
+- `website/` — Next.js 16 App Router public product and documentation website.
 - `agent/` — self-contained Go monitoring agent.
 - `deploy/` — deployment assets.
-- `docs/` — architecture and operational documentation.
+- `docs/` — architecture and operational documentation for maintainers and operators.
 - `tools/` — shared development, linting and database tooling.
 
 ## Core principles
@@ -50,9 +53,16 @@ Start the applications in separate terminals:
 uvicorn backend.bifrostnms.main:app --host 0.0.0.0 --port 8000 --reload
 pnpm --dir auth-frontend dev
 pnpm --dir frontend dev
+pnpm --dir website dev
 ```
 
-Then visit `http://localhost:3001` to create/sign into an account and `http://localhost:3000` for the dashboard.
+Then visit:
+
+- `http://localhost:3001` for authentication and account security;
+- `http://localhost:3000` for the monitoring dashboard; and
+- `http://localhost:3002` for the public website and user documentation.
+
+The public website documentation includes the end-to-end local setup workflow covering realms, agents, targets and groups, monitors and assignments, probe results, and local disconnect/reconnect testing.
 
 Documentation:
 
@@ -63,6 +73,7 @@ Documentation:
 - `docs/deployment/overview.md`
 - `docs/deployment/timescaledb.md`
 - `docs/architecture/authentication.md`
+- `website/src/app/docs/` — public user documentation.
 - `CONTRIBUTING.md`
 - `AGENTS.md`
 

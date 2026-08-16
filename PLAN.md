@@ -100,6 +100,8 @@ communicate with it using direct, versioned APIs and batch operations.
 ## Authoritative architecture
 
 ```text
+Next.js public website -------+
+                              |
 Next.js authentication UI ----+
                               |
 Next.js dashboard ------------+----> FastAPI control plane
@@ -115,7 +117,8 @@ Distributed Go agents --------+             +--> PostgreSQL/TimescaleDB
   query APIs.
 - Tortoise ORM manages ordinary persistent relational models and migrations.
 - Direct, reviewed SQL may be used where TimescaleDB ingestion or analytics
-  would be poorly served by row-at-a-time ORM operations.
+  would be poorly served by row-at-a-time ORM operations. Request-derived values
+  must remain database parameters rather than being interpolated into query text.
 - The control plane owns desired configuration, identity, authorization,
   durable ingestion and query behavior.
 
@@ -133,9 +136,11 @@ Distributed Go agents --------+             +--> PostgreSQL/TimescaleDB
 
 - `auth-frontend/` is the Next.js 16 identity and account-security application.
 - `frontend/` is the Next.js 16 monitoring dashboard.
-- Both applications use strict TypeScript and the App Router.
+- `website/` is the Next.js 16 public product and end-user documentation site.
+- All applications use strict TypeScript and the App Router.
 - Authentication and the dashboard remain separately deployable while sharing
-  the FastAPI and Redis session model.
+  the FastAPI and Redis session model; the public website does not require an
+  authenticated browser session for its documentation routes.
 
 ### Agent
 
@@ -571,14 +576,16 @@ Acceptance criteria:
 
 ### Stage 8: HTTP/HTTPS, TCP, DNS and TLS monitoring
 
-**Status: In progress**
+**Status: Validated**
 
 Objective: complete the useful baseline synthetic-monitoring probe set using
 native Go implementations.
 
-TCP is implemented and validated on the current service-probe branch. HTTP/HTTPS
-is implemented on the same branch and is undergoing CI validation. DNS and TLS
-remain to be completed before this stage can be considered implemented.
+HTTP/HTTPS, TCP, DNS and TLS are implemented as native Go probes and share the
+common observation envelope, typed probe-specific measurements, configuration
+validation and categorized error behavior. Deterministic local protocol fixtures
+cover success, timeout, assertion and representative DNS/TLS failure paths without
+requiring public Internet services or external command-line probe dependencies.
 
 Acceptance criteria:
 
@@ -592,9 +599,24 @@ Acceptance criteria:
 
 ### Stage 9: Dashboard and SmokePing-style visualization
 
-**Status: Not started**
+**Status: Implemented**
 
 Objective: make distributed measurements understandable and useful to operators.
+
+The dashboard now provides the complete V1 management workflow for agents,
+groups, targets, monitors, memberships and assignments. Realm-scoped monitoring
+queries expose current distributed state, recent observations and typed history
+for ICMP, HTTP/HTTPS, TCP, DNS and TLS. Availability semantics distinguish
+configuration delay, missing data, probe failure, target failure, stale agents
+and offline agents rather than reducing all failures to a single status.
+
+ICMP history preserves individual RTT samples and packet loss in per-agent
+SmokePing-style visualizations. Series are kept separate between agents and are
+explicitly broken across missing observations so gaps are not rendered as zero
+or fabricated continuity. Selectable time ranges, probe-specific result details,
+empty/loading/failure states and frontend behavior tests complete the dashboard
+slice. The public `website/` application provides the end-user documentation for
+configuring and exercising the V1 workflow locally.
 
 Deliverables:
 

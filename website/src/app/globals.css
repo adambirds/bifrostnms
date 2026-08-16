@@ -418,14 +418,14 @@ h3 {
   gap: 0.25rem;
 }
 
-.docs-sidebar nav a {
+.docs-sidebar nav a:any-link {
   padding: 0.5rem 0;
   color: #91a5c4;
   font-size: 0.9rem;
 }
 
-.docs-sidebar nav a:hover,
-.docs-sidebar nav a:focus-visible {
+.docs-sidebar nav a:any-link:hover,
+.docs-sidebar nav a:any-link:focus-visible {
   color: #fff;
 }
 

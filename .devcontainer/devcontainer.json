@@ -56,11 +56,12 @@
       }
     }
   },
-  "forwardPorts": [8000, 3000, 3001, 5432, 6379],
+  "forwardPorts": [8000, 3000, 3001, 3002, 5432, 6379],
   "portsAttributes": {
     "8000": { "label": "BifrostNMS API", "onAutoForward": "notify" },
     "3000": { "label": "BifrostNMS Dashboard", "onAutoForward": "notify" },
     "3001": { "label": "BifrostNMS Auth", "onAutoForward": "notify" },
+    "3002": { "label": "BifrostNMS Website", "onAutoForward": "notify" },
     "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
     "6379": { "label": "Redis", "onAutoForward": "silent" }
   },

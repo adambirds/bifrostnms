@@ -38,6 +38,18 @@
       "problemMatcher": []
     },
     {
+      "label": "start: website",
+      "type": "shell",
+      "command": "pnpm --dir website dev",
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "bifrostnms"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "start: celery worker",
       "type": "shell",
       "command": "PYTHONPATH=backend celery -A bifrostnms.celery_app:celery_app worker --loglevel=INFO --queues=default,email,notifications",
@@ -76,7 +88,12 @@
     {
       "label": "start: all web",
       "dependsOrder": "parallel",
-      "dependsOn": ["start: api", "start: dashboard", "start: auth frontend"],
+      "dependsOn": [
+        "start: api",
+        "start: dashboard",
+        "start: auth frontend",
+        "start: website"
+      ],
       "problemMatcher": []
     },
     {
@@ -92,6 +109,7 @@
         "start: api",
         "start: dashboard",
         "start: auth frontend",
+        "start: website",
         "start: celery worker",
         "start: celery beat",
         "start: agent"

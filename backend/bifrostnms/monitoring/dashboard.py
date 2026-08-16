@@ -293,103 +293,86 @@ async def query_recent_observations(*, realm_id: UUID, limit: int) -> list[Obser
     return [ObservationSummary.model_validate(row) for row in rows]
 
 
-_HISTORY_SELECTS: dict[ProbeType, tuple[str, str]] = {
-    ProbeType.ICMP: (
-        "icmp_results",
-        """
-        result.packets_sent,
-        result.packets_received,
-        result.packet_loss_percent,
-        result.min_rtt_ms,
-        result.avg_rtt_ms,
-        result.median_rtt_ms,
-        result.max_rtt_ms,
-        result.p95_rtt_ms,
-        result.jitter_ms,
-        result.rtt_samples_ms
-        """,
-    ),
-    ProbeType.HTTP: (
-        "http_results",
-        """
-        result.method,
-        result.scheme,
-        result.status_code,
-        result.redirect_count,
-        result.response_size_bytes,
-        result.dns_ms,
-        result.connect_ms,
-        result.tls_ms,
-        result.ttfb_ms,
-        result.total_ms,
-        result.assertions_total,
-        result.assertions_failed,
-        result.final_url_redacted
-        """,
-    ),
-    ProbeType.TCP: (
-        "tcp_results",
-        "result.port, result.address_used::text AS address_used, result.connect_ms",
-    ),
-    ProbeType.DNS: (
-        "dns_results",
-        """
-        result.resolver_address::text AS resolver_address,
-        result.query_name,
-        result.query_type,
-        result.response_code,
-        result.response_ms,
-        result.answer_count,
-        result.answers,
-        result.truncated,
-        result.authoritative,
-        result.assertions_total,
-        result.assertions_failed
-        """,
-    ),
-    ProbeType.TLS: (
-        "tls_results",
-        """
-        result.port,
-        result.server_name,
-        result.protocol_version,
-        result.cipher_suite,
-        result.handshake_ms,
-        result.certificate_present,
-        result.hostname_valid,
-        result.chain_valid,
-        result.not_before,
-        result.not_after,
-        result.days_remaining,
-        result.subject_name,
-        result.issuer_name,
-        result.serial_number,
-        result.fingerprint_sha256
-        """,
-    ),
-}
+_HISTORY_QUERY = """
+    SELECT
+        observation.observation_id,
+        observation.scheduled_at,
+        observation.received_at,
+        observation.monitor_id,
+        observation.agent_id,
+        observation.probe_type,
+        observation.execution_status,
+        observation.assessment,
+        observation.error_category,
+        observation.error_code,
+        observation.error_message,
+        CASE observation.probe_type
+            WHEN 'icmp' THEN to_jsonb(icmp_result)
+            WHEN 'http' THEN to_jsonb(http_result)
+            WHEN 'tcp' THEN to_jsonb(tcp_result)
+            WHEN 'dns' THEN to_jsonb(dns_result)
+            WHEN 'tls' THEN to_jsonb(tls_result)
+            ELSE NULL
+        END AS result
+    FROM observations AS observation
+    LEFT JOIN icmp_results AS icmp_result
+        ON observation.probe_type = 'icmp'
+        AND icmp_result.scheduled_at = observation.scheduled_at
+        AND icmp_result.observation_id = observation.observation_id
+        AND icmp_result.realm_id = observation.realm_id
+        AND icmp_result.agent_id = observation.agent_id
+        AND icmp_result.monitor_id = observation.monitor_id
+    LEFT JOIN http_results AS http_result
+        ON observation.probe_type = 'http'
+        AND http_result.scheduled_at = observation.scheduled_at
+        AND http_result.observation_id = observation.observation_id
+        AND http_result.realm_id = observation.realm_id
+        AND http_result.agent_id = observation.agent_id
+        AND http_result.monitor_id = observation.monitor_id
+    LEFT JOIN tcp_results AS tcp_result
+        ON observation.probe_type = 'tcp'
+        AND tcp_result.scheduled_at = observation.scheduled_at
+        AND tcp_result.observation_id = observation.observation_id
+        AND tcp_result.realm_id = observation.realm_id
+        AND tcp_result.agent_id = observation.agent_id
+        AND tcp_result.monitor_id = observation.monitor_id
+    LEFT JOIN dns_results AS dns_result
+        ON observation.probe_type = 'dns'
+        AND dns_result.scheduled_at = observation.scheduled_at
+        AND dns_result.observation_id = observation.observation_id
+        AND dns_result.realm_id = observation.realm_id
+        AND dns_result.agent_id = observation.agent_id
+        AND dns_result.monitor_id = observation.monitor_id
+    LEFT JOIN tls_results AS tls_result
+        ON observation.probe_type = 'tls'
+        AND tls_result.scheduled_at = observation.scheduled_at
+        AND tls_result.observation_id = observation.observation_id
+        AND tls_result.realm_id = observation.realm_id
+        AND tls_result.agent_id = observation.agent_id
+        AND tls_result.monitor_id = observation.monitor_id
+    WHERE observation.realm_id = $1
+      AND observation.monitor_id = $2
+      AND observation.probe_type = $3
+      AND observation.scheduled_at >= $4
+      AND observation.scheduled_at <= $5
+    ORDER BY observation.scheduled_at ASC, observation.agent_id ASC
+    LIMIT $6
+"""
 
 
 def _typed_result(probe_type: ProbeType, row: dict[str, Any]) -> ProbeResult | None:
-    if probe_type == ProbeType.ICMP:
-        if row.get("packets_sent") is None:
-            return None
-        return IcmpProbeResult.model_validate(row)
-    if probe_type == ProbeType.HTTP:
-        if row.get("method") is None:
-            return None
-        return HttpProbeResult.model_validate(row)
-    if probe_type == ProbeType.TCP:
-        if row.get("port") is None:
-            return None
-        return TcpProbeResult.model_validate(row)
-    if probe_type == ProbeType.DNS:
-        if row.get("query_name") is None:
-            return None
-        return DnsProbeResult.model_validate(row)
-    if row.get("port") is None:
+    payload = row.get("result")
+    if not isinstance(payload, dict):
         return None
-    return TlsProbeResult.model_validate(row)
+    if probe_type == ProbeType.ICMP:
+        return IcmpProbeResult.model_validate(payload)
+    if probe_type == ProbeType.HTTP:
+        return HttpProbeResult.model_validate(payload)
+    if probe_type == ProbeType.TCP:
+        return TcpProbeResult.model_validate(payload)
+    if probe_type == ProbeType.DNS:
+        return DnsProbeResult.model_validate(payload)
+    return TlsProbeResult.model_validate(payload)
 
 
 def _history_point(probe_type: ProbeType, row: dict[str, Any]) -> ProbeHistoryPoint:
@@ -418,40 +401,9 @@ async def query_probe_history(
     end: datetime,
     limit: int,
 ) -> list[ProbeHistoryPoint]:
-    table, result_columns = _HISTORY_SELECTS[probe_type]
     connection = connections.get("default")
-    # The only interpolated values are compile-time table/column fragments selected
-    # from the ProbeType enum above. All request-derived values remain parameters.
     rows = await connection.execute_query_dict(
-        f"""
-        SELECT
-            observation.observation_id,
-            observation.scheduled_at,
-            observation.received_at,
-            observation.monitor_id,
-            observation.agent_id,
-            observation.probe_type,
-            observation.execution_status,
-            observation.assessment,
-            observation.error_category,
-            observation.error_code,
-            observation.error_message,
-            {result_columns}
-        FROM observations AS observation
-        LEFT JOIN {table} AS result
-            ON result.scheduled_at = observation.scheduled_at
-            AND result.observation_id = observation.observation_id
-            AND result.realm_id = observation.realm_id
-            AND result.agent_id = observation.agent_id
-            AND result.monitor_id = observation.monitor_id
-        WHERE observation.realm_id = $1
-          AND observation.monitor_id = $2
-          AND observation.probe_type = $3
-          AND observation.scheduled_at >= $4
-          AND observation.scheduled_at <= $5
-        ORDER BY observation.scheduled_at ASC, observation.agent_id ASC
-        LIMIT $6
-        """,
+        _HISTORY_QUERY,
         [realm_id, monitor_id, str(probe_type), start, end, limit],
     )
     return [_history_point(probe_type, row) for row in rows]
