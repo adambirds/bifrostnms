@@ -34,5 +34,33 @@ def test_dns_result_matches_shared_contract() -> None:
     assert result.resolver_address == "127.0.0.1"
     assert result.response_code == "NOERROR"
     assert result.answer_count == 1
-    assert result.answers[0]["value"] == "192.0.2.10"
+    assert result.answers[0].value == "192.0.2.10"
     assert result.assertions_failed == 0
+
+
+def test_system_dns_result_allows_unknown_resolver_address() -> None:
+    result = DnsObservationResult.model_validate(
+        {
+            "resolver_address": None,
+            "query_name": "example.com",
+            "query_type": "A",
+            "response_code": "NOERROR",
+            "response_ms": 1.0,
+            "answer_count": 1,
+            "answers": [
+                {
+                    "type": "A",
+                    "name": "example.com",
+                    "ttl": None,
+                    "value": "192.0.2.10",
+                }
+            ],
+            "truncated": False,
+            "authoritative": False,
+            "assertions_total": 1,
+            "assertions_failed": 0,
+        }
+    )
+
+    assert result.resolver_address is None
+    assert result.answers[0].ttl is None
