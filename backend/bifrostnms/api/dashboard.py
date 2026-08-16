@@ -14,18 +14,12 @@ from bifrostnms.monitoring.dashboard import (
     query_probe_history,
     query_recent_observations,
 )
-from bifrostnms.schemas.dashboard import (
-    MonitorStateSummary,
-    ObservationSummary,
-    ProbeHistoryPoint,
-)
+from bifrostnms.schemas.dashboard import MonitorStateSummary, ObservationSummary, ProbeHistoryPoint
 
 router = APIRouter(prefix="/monitoring/dashboard", tags=["monitoring-dashboard"])
 
 
-def _history_range(
-    *, start: datetime | None, end: datetime | None
-) -> tuple[datetime, datetime]:
+def _history_range(*, start: datetime | None, end: datetime | None) -> tuple[datetime, datetime]:
     resolved_end = end or datetime.now(UTC)
     resolved_start = start or resolved_end - timedelta(hours=24)
     if (
