@@ -5,10 +5,12 @@
   "scripts": {
     "dev:frontend": "pnpm --dir frontend dev",
     "dev:auth": "pnpm --dir auth-frontend dev",
+    "dev:website": "pnpm --dir website dev",
     "build:frontend": "pnpm --dir frontend build",
     "build:auth": "pnpm --dir auth-frontend build",
-    "lint": "pnpm --dir frontend lint && pnpm --dir auth-frontend lint",
-    "typecheck": "pnpm --dir frontend typecheck && pnpm --dir auth-frontend typecheck",
+    "build:website": "pnpm --dir website build",
+    "lint": "pnpm --dir frontend lint && pnpm --dir auth-frontend lint && pnpm --dir website lint",
+    "typecheck": "pnpm --dir frontend typecheck && pnpm --dir auth-frontend typecheck && pnpm --dir website typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
