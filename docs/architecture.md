@@ -21,6 +21,12 @@ Detailed architecture documents:
 - `docs/architecture/tenancy.md`
 - `docs/architecture/data-model.md`
 - `docs/architecture/measurements.md`
+- `docs/architecture/agent-protocol.md`
+- `docs/architecture/agent-storage.md`
+- `docs/architecture/sync.md`
+- `docs/architecture/agent-protocol.md`
+- `docs/architecture/agent-storage.md`
+- `docs/architecture/sync.md`
 
 ## Components
 

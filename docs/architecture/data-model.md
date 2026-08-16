@@ -381,10 +381,9 @@ The server should generate configuration deterministically. The content hash
 allows it to avoid creating revisions for changes that do not alter agent-visible
 behavior.
 
-Whether full configuration snapshots are persisted server-side or reproducibly
-generated and retained only as revision metadata remains an agent-protocol
-decision. Historical observations must still identify the applied configuration
-well enough to interpret their measurements.
+Full immutable configuration snapshots are persisted server-side as defined in
+`agent-protocol.md`. Historical observations identify the applied configuration
+revision so their address and probe behavior remain interpretable.
 
 ## Observation identity
 
@@ -475,11 +474,12 @@ Every persistent change requires a reviewed Tortoise migration. Do not use
 
 ## Decisions delegated to adjacent designs
 
-- The exact agent credential and enrolment protocol.
-- Full desired-configuration snapshot retention.
+- Agent credentials, enrolment and full desired-configuration snapshot retention
+  are defined in `agent-protocol.md`.
 - Observation status/error taxonomy is defined in `measurements.md` and may be
   refined by the versioned agent protocol.
 - Probe-specific result storage, TimescaleDB dimensions, indexes and retention
   are defined in `measurements.md`.
-- Agent clock-skew handling and authoritative timestamps.
+- Agent clock-skew and timestamp behavior is shared across `measurements.md`,
+  `agent-protocol.md` and `sync.md`.
 - Health derivation from observations, heartbeats and missing data.
