@@ -52,9 +52,12 @@ export async function createAgentAction(
 
 export async function issueAgentEnrolmentAction(
   agentId: string,
-  _previousState: AgentEnrolmentState,
-  _formData: FormData,
+  previousState: AgentEnrolmentState,
+  formData: FormData,
 ): Promise<AgentEnrolmentState> {
+  void previousState
+  void formData
+
   try {
     const token = await authenticatedApiRequest<AgentEnrolmentToken>(
       `/monitoring/agents/${agentId}/enrolment-tokens`,
