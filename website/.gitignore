@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Test and lint output
+coverage/
+.eslintcache
+.stylelintcache
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Local environment files
+.env*
+!.env.example
+
+# Deployment
+.vercel/
