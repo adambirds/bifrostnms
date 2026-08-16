@@ -95,7 +95,7 @@ func DecodeConfiguration(raw json.RawMessage) (Configuration, error) {
 		}
 	}
 	if configuration.QueryName != nil {
-		normalized := strings.TrimSuffix(strings.TrimSpace(*configuration.QueryName), ".")
+		normalized := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(*configuration.QueryName), "."))
 		if normalized == "" || len(normalized) > 253 || strings.ContainsAny(normalized, "\r\n\x00") {
 			return Configuration{}, errors.New("DNS query name is invalid")
 		}
