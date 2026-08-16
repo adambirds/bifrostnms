@@ -8,6 +8,8 @@ import type {
   TargetGroup,
 } from '@/lib/monitoring'
 
+import './groups.css'
+
 export default async function GroupsPage() {
   const [agentGroups, targetGroups, agents, targets] = await Promise.all([
     authenticatedApiFetch<AgentGroup[]>('/monitoring/agent-groups'),
