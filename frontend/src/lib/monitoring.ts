@@ -18,6 +18,26 @@ export type AgentEnrolmentToken = {
   expires_at: string
 }
 
+export type AgentGroup = {
+  id: string
+  realm_id: string
+  parent_id: string | null
+  name: string
+  description: string | null
+  enabled: boolean
+  archived_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AgentGroupMembership = {
+  id: string
+  realm_id: string
+  agent_group_id: string
+  agent_id: string
+  created_at: string
+}
+
 export type Target = {
   id: string
   realm_id: string
@@ -28,6 +48,25 @@ export type Target = {
   archived_at: string | null
   created_at: string
   updated_at: string
+}
+
+export type TargetGroup = {
+  id: string
+  realm_id: string
+  parent_id: string | null
+  name: string
+  description: string | null
+  archived_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type TargetGroupMembership = {
+  id: string
+  realm_id: string
+  target_group_id: string
+  target_id: string
+  created_at: string
 }
 
 export type Monitor = {
