@@ -30,6 +30,7 @@ class User(TimestampedModel):
     webauthn_credentials: fields.ReverseRelation[WebAuthnCredential]
     two_factor_methods: fields.ReverseRelation[TwoFactorMethod]
     recovery_codes: fields.ReverseRelation[RecoveryCode]
+    audit_events: fields.ReverseRelation[AuditEvent]
 
     @property
     def full_name(self) -> str:
@@ -43,6 +44,7 @@ class Realm(TimestampedModel):
     is_active = fields.BooleanField(default=True)
 
     memberships: fields.ReverseRelation[RealmMembership]
+    audit_events: fields.ReverseRelation[AuditEvent]
 
 
 class RealmMembership(TimestampedModel):
@@ -108,4 +110,24 @@ class AuthenticationChallenge(TimestampedModel):
     challenge_hash = fields.CharField(max_length=64, unique=True, db_index=True)
     expires_at = fields.DatetimeField(db_index=True)
     consumed_at = fields.DatetimeField(null=True)
+    metadata = fields.JSONField[dict[str, Any]](default=dict)
+
+
+class AuditEvent(Model):
+    id = fields.UUIDField(primary_key=True, default=uuid.uuid4)
+    occurred_at = fields.DatetimeField(auto_now_add=True, db_index=True)
+    realm: fields.ForeignKeyNullableRelation[Realm] = fields.ForeignKeyField(
+        "models.Realm", related_name="audit_events", null=True, on_delete=fields.SET_NULL
+    )
+    actor_user: fields.ForeignKeyNullableRelation[User] = fields.ForeignKeyField(
+        "models.User", related_name="audit_events", null=True, on_delete=fields.SET_NULL
+    )
+    actor_type = fields.CharField(max_length=32)
+    action = fields.CharField(max_length=120, db_index=True)
+    outcome = fields.CharField(max_length=32, db_index=True)
+    target_type = fields.CharField(max_length=80, null=True)
+    target_id = fields.CharField(max_length=255, null=True)
+    source_ip = fields.CharField(max_length=64, null=True)
+    user_agent = fields.CharField(max_length=512, default="")
+    superuser_bypass = fields.BooleanField(default=False)
     metadata = fields.JSONField[dict[str, Any]](default=dict)

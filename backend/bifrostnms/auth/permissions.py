@@ -3,8 +3,8 @@ from uuid import UUID
 
 from fastapi import HTTPException, Request, status
 
-from bifrostnms.auth.security import SessionData, get_session_user
 from bifrostnms.auth.roles import RealmPermission, RealmRole, role_has_permission
+from bifrostnms.auth.security import SessionData, get_session_user
 from bifrostnms.models import Realm, RealmMembership, User
 
 
