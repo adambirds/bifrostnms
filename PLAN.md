@@ -407,9 +407,9 @@ memberships, installation superusers, TOTP/recovery codes, WebAuthn/passkeys and
 the separate authentication frontend.
 
 Remaining acceptance work includes reviewing realm authorization boundaries,
-finishing user-facing lifecycle flows such as verification and password reset,
 defining audit requirements, and validating production session/WebAuthn
-deployment guidance.
+deployment guidance. User-facing email verification and password-reset flows
+are implemented.
 
 Acceptance criteria:
 
