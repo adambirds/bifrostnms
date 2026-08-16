@@ -15,15 +15,40 @@
   align-items: end;
 }
 
-.checkbox-label {
-  display: flex !important;
+.resource-form .checkbox-label {
+  display: flex;
   min-height: 42px;
-  flex-direction: row !important;
+  flex-direction: row;
   align-items: center;
-  gap: 0.65rem !important;
+  gap: 0.65rem;
 }
 
-.checkbox-label input {
-  width: auto !important;
+.resource-form .checkbox-label input {
+  width: auto;
   margin: 0;
+}
+
+.assignment-form {
+  display: grid;
+  min-width: 200px;
+  gap: 0.5rem;
+}
+
+.assignment-form select {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #2a3c60;
+  border-radius: 10px;
+  outline: none;
+  background: #071225;
+  color: #f8fafc;
+}
+
+.assignment-form select:focus {
+  border-color: #4ea7ff;
+  box-shadow: 0 0 0 2px rgb(78 167 255 / 18%);
+}
+
+.assignment-form button {
+  padding: 0.5rem 0.75rem;
 }

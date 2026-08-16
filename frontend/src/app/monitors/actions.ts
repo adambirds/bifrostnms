@@ -55,11 +55,12 @@ function buildConfiguration(
     case 'http': {
       const port = optionalNumber(formData, 'port')
       const expectedStatusCodes = String(
-        formData.get('expected_status_codes') ?? '200,201,202,204,301,302,303,307,308',
+        formData.get('expected_status_codes') ??
+          '200,201,202,204,301,302,303,307,308',
       )
         .split(',')
-        .map(value => Number(value.trim()))
-        .filter(value => Number.isInteger(value))
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value))
 
       return {
         schema_version: schemaVersion,
@@ -74,7 +75,10 @@ function buildConfiguration(
         expected_status_codes: expectedStatusCodes,
         expected_header_values: [],
         expected_body_contains: [],
-        maximum_response_bytes: requiredNumber(formData, 'maximum_response_bytes'),
+        maximum_response_bytes: requiredNumber(
+          formData,
+          'maximum_response_bytes',
+        ),
         address_family: addressFamily(formData),
       }
     }
@@ -102,7 +106,7 @@ function buildConfiguration(
           formData.get('expected_response_codes') ?? 'NOERROR',
         )
           .split(',')
-          .map(value => value.trim().toUpperCase())
+          .map((value) => value.trim().toUpperCase())
           .filter(Boolean),
         expected_answers: [],
       }
