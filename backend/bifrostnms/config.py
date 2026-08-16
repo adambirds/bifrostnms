@@ -1,6 +1,8 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -66,6 +68,35 @@ class Settings(BaseSettings):
     microsoft_graph_private_key_passphrase: str | None = None
     microsoft_graph_from_name: str | None = "BifrostNMS"
     microsoft_graph_timeout_seconds: float = 15.0
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> "Settings":
+        if self.env != "production":
+            return self
+
+        errors: list[str] = []
+        if not self.cookie_secure:
+            errors.append("BIFROSTNMS_COOKIE_SECURE must be true")
+        if (
+            self.auth_encryption_key == "development-only-change-me"
+            or len(self.auth_encryption_key) < 32
+        ):
+            errors.append("BIFROSTNMS_AUTH_ENCRYPTION_KEY must be a strong deployment secret")
+        if urlparse(self.auth_frontend_url).scheme != "https":
+            errors.append("BIFROSTNMS_AUTH_FRONTEND_URL must use HTTPS")
+        if urlparse(self.webauthn_origin).scheme != "https":
+            errors.append("BIFROSTNMS_WEBAUTHN_ORIGIN must use HTTPS")
+        if self.webauthn_rp_id == "localhost":
+            errors.append("BIFROSTNMS_WEBAUTHN_RP_ID must not be localhost")
+        if self.auto_create_schema:
+            errors.append("BIFROSTNMS_AUTO_CREATE_SCHEMA must be false")
+        if any(
+            origin == "*" or urlparse(origin).scheme != "https" for origin in self.cors_origin_list
+        ):
+            errors.append("BIFROSTNMS_CORS_ORIGINS must contain only explicit HTTPS origins")
+        if errors:
+            raise ValueError("Invalid production configuration: " + "; ".join(errors))
+        return self
 
     @property
     def session_ttl_seconds(self) -> int:
