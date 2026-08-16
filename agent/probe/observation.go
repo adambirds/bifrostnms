@@ -55,4 +55,6 @@ func EncodeObservation(
 	return encoded, nil
 }
 
-const timeFormat = "2006-01-02T15:04:05.999999999Z07:00"
+// Python datetime and PostgreSQL round-trip timestamps at microsecond precision,
+// so the wire format intentionally does not emit Go's additional nanoseconds.
+const timeFormat = "2006-01-02T15:04:05.999999Z07:00"
