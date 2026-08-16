@@ -20,6 +20,7 @@ import (
 	httpprobe "github.com/adambirds/bifrostnms/agent/probes/http"
 	"github.com/adambirds/bifrostnms/agent/probes/icmp"
 	tcpprobe "github.com/adambirds/bifrostnms/agent/probes/tcp"
+	tlsprobe "github.com/adambirds/bifrostnms/agent/probes/tls"
 	"github.com/adambirds/bifrostnms/agent/protocol"
 	"github.com/adambirds/bifrostnms/agent/scheduler"
 	"github.com/adambirds/bifrostnms/agent/storage"
@@ -197,7 +198,7 @@ func agentCapabilities(
 	ctx context.Context,
 ) (protocol.Capabilities, *probe.Registry, error) {
 	registry, err := probe.NewRegistry(
-		icmp.New(nil), httpprobe.New(nil), tcpprobe.New(nil), dnsprobe.New(nil),
+		icmp.New(nil), httpprobe.New(nil), tcpprobe.New(nil), dnsprobe.New(nil), tlsprobe.New(nil, nil),
 	)
 	if err != nil {
 		return protocol.Capabilities{}, nil, err
@@ -207,6 +208,7 @@ func agentCapabilities(
 		probe.TypeHTTP: func(context.Context) bool { return true },
 		probe.TypeTCP:  func(context.Context) bool { return true },
 		probe.TypeDNS:  func(context.Context) bool { return true },
+		probe.TypeTLS:  func(context.Context) bool { return true },
 	})
 	probes := make(map[string]protocol.ProbeCapability, len(detected))
 	for probeType, capability := range detected {
