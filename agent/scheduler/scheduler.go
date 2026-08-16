@@ -46,8 +46,9 @@ type MissedRun struct {
 }
 
 type Execution struct {
-	Request probe.Request
-	Result  probe.Result
+	ProbeType probe.Type
+	Request   probe.Request
+	Result    probe.Result
 }
 
 type job struct {
@@ -242,7 +243,7 @@ func (s *Scheduler) start(parent context.Context, current *job, scheduledAt time
 				ErrorMessage: "Probe returned an invalid result.",
 			}
 		}
-		s.results <- Execution{Request: request, Result: result}
+		s.results <- Execution{ProbeType: assignment.ProbeType, Request: request, Result: result}
 		s.mu.Lock()
 		s.running[assignment.MonitorID] = false
 		s.mu.Unlock()
