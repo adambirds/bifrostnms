@@ -172,8 +172,8 @@ class AgentConfigurationAcknowledgementResponse(BaseModel):
 
 
 class IcmpObservationResult(BaseModel):
-    packets_sent: int = Field(ge=1, le=20)
-    packets_received: int = Field(ge=0, le=20)
+    packets_sent: int = Field(ge=1, le=100)
+    packets_received: int = Field(ge=0, le=100)
     packet_loss_percent: float = Field(ge=0, le=100)
     min_rtt_ms: float | None = Field(default=None, ge=0)
     avg_rtt_ms: float | None = Field(default=None, ge=0)
@@ -181,7 +181,7 @@ class IcmpObservationResult(BaseModel):
     max_rtt_ms: float | None = Field(default=None, ge=0)
     p95_rtt_ms: float | None = Field(default=None, ge=0)
     jitter_ms: float | None = Field(default=None, ge=0)
-    rtt_samples_ms: list[Annotated[float, Field(ge=0)]] = Field(max_length=20)
+    rtt_samples_ms: list[Annotated[float, Field(ge=0)]] = Field(max_length=100)
 
     @model_validator(mode="after")
     def validate_packet_counts(self) -> Self:
