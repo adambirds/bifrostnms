@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "scheme": "https",
+  "port": 8443,
+  "path": "/health?token=example",
+  "method": "GET",
+  "follow_redirects": true,
+  "maximum_redirects": 5,
+  "host_header": "monitor.example.com",
+  "request_headers": {
+    "Accept": "application/json",
+    "X-Bifrost-Probe": "v1"
+  },
+  "expected_status_codes": [200, 204],
+  "expected_header_values": [
+    {"name": "Content-Type", "value": "application/json"}
+  ],
+  "expected_body_contains": ["ok"],
+  "maximum_response_bytes": 1048576,
+  "address_family": "auto"
+}
