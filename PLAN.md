@@ -371,7 +371,7 @@ when dependencies permit it.
 
 ### Stage 0: Architecture and domain specification
 
-**Status: In progress**
+**Status: Validated**
 
 Objective: settle the durable boundaries before building monitoring features
 that depend on them.
@@ -656,7 +656,7 @@ implicitly approved merely because it appears in this list.
 
 ## Stage 0 design decisions
 
-The foundational Stage 0 questions are documented for review. Historical
+The foundational Stage 0 questions are documented and approved. Historical
 behavior for deleted targets, monitors, agents and realms is settled by the
 archival and realm-purge rules in `docs/architecture/data-model.md` and
 `docs/architecture/tenancy.md`.
