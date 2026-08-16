@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +55,9 @@ func New(
 
 func (e *Engine) LoadActiveConfiguration(ctx context.Context, now time.Time) error {
 	snapshot, err := e.store.ActiveConfiguration(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return e.scheduler.Reconcile(ctx, nil, now)
+	}
 	if err != nil {
 		return fmt.Errorf("read active configuration: %w", err)
 	}
