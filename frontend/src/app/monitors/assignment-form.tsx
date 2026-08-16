@@ -5,11 +5,16 @@ import { useActionState } from 'react'
 import {
   assignMonitorToAgentAction,
   assignMonitorToAgentGroupAction,
-  initialMonitorAssignmentState,
+  type MonitorAssignmentState,
   removeMonitorAgentAssignmentAction,
   removeMonitorAgentGroupAssignmentAction,
 } from '@/app/monitors/assignment-actions'
 import type { Agent, AgentGroup } from '@/lib/monitoring'
+
+const initialMonitorAssignmentState: MonitorAssignmentState = {
+  error: null,
+  success: null,
+}
 
 type AssignmentFormProps =
   | { kind: 'agent'; monitorId: string; resources: Agent[] }
@@ -63,7 +68,7 @@ export function AssignmentForm(props: AssignmentFormProps) {
         <option value="" disabled>
           Select {label}
         </option>
-        {props.resources.map((resource) => (
+        {props.resources.map(resource => (
           <option key={resource.id} value={resource.id}>
             {resource.name}
           </option>
