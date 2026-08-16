@@ -1,6 +1,10 @@
 import Link from 'next/link'
 
-import { IcmpGraph, type IcmpPoint } from '@/app/icmp-graph'
+import {
+  IcmpGraph,
+  type IcmpObservationMeta,
+  type IcmpPoint,
+} from '@/app/icmp-graph'
 import {
   formatTimestamp,
   headlineLabel,
@@ -41,9 +45,11 @@ export default async function DashboardPage() {
     (state) => state.headline === 'unknown' || state.headline === 'disabled',
   ).length
   const icmpMonitor = monitors.find((monitor) => monitor.probe_type === 'icmp')
+  const historyEnd = new Date()
+  const historyStart = new Date(historyEnd.getTime() - 24 * 60 * 60 * 1000)
   const history = icmpMonitor
     ? await authenticatedApiFetch<ProbeHistoryPoint[]>(
-        `/monitoring/dashboard/monitors/${icmpMonitor.id}/history`,
+        `/monitoring/dashboard/monitors/${icmpMonitor.id}/history?start=${encodeURIComponent(historyStart.toISOString())}&end=${encodeURIComponent(historyEnd.toISOString())}`,
       )
     : []
   const points: IcmpPoint[] = history.flatMap((point) => {
@@ -52,14 +58,25 @@ export default async function DashboardPage() {
       {
         scheduled_at: point.scheduled_at,
         agent_id: point.agent_id,
+        packets_sent: point.result.packets_sent,
+        packets_received: point.result.packets_received,
         packet_loss_percent: point.result.packet_loss_percent,
         min_rtt_ms: point.result.min_rtt_ms,
+        avg_rtt_ms: point.result.avg_rtt_ms,
         median_rtt_ms: point.result.median_rtt_ms,
         max_rtt_ms: point.result.max_rtt_ms,
+        p95_rtt_ms: point.result.p95_rtt_ms,
+        jitter_ms: point.result.jitter_ms,
         rtt_samples_ms: point.result.rtt_samples_ms,
       },
     ]
   })
+  const icmpObservations: IcmpObservationMeta[] = history.map((point) => ({
+    scheduled_at: point.scheduled_at,
+    agent_id: point.agent_id,
+    execution_status: point.execution_status,
+    assessment: point.assessment,
+  }))
 
   return (
     <>
@@ -177,7 +194,10 @@ export default async function DashboardPage() {
           <IcmpGraph
             agentNames={Object.fromEntries(agentNames)}
             intervalSeconds={icmpMonitor.interval_seconds}
+            observations={icmpObservations}
             points={points}
+            rangeEnd={historyEnd.toISOString()}
+            rangeStart={historyStart.toISOString()}
           />
         </section>
       ) : null}
