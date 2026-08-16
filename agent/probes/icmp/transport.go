@@ -62,6 +62,9 @@ func (t NativeTransport) Exchange(
 	)
 	for sequence < packetCount || time.Now().Before(finishedAt) {
 		if err := ctx.Err(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) && sequence >= packetCount {
+				break
+			}
 			return nil, err
 		}
 		now := time.Now()
@@ -102,6 +105,9 @@ func (t NativeTransport) Exchange(
 		}
 		read, _, readErr := connection.ReadFrom(buffer)
 		if readErr != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) && sequence >= packetCount {
+				break
+			}
 			var networkError net.Error
 			if errors.As(readErr, &networkError) && networkError.Timeout() {
 				continue
