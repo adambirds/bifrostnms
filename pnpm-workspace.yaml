@@ -1,4 +1,7 @@
 packages:
-  - 'auth-frontend'
-  - 'frontend'
-  - 'website'
+  - auth-frontend
+  - frontend
+  - website
+
+onlyBuiltDependencies:
+  - unrs-resolver
