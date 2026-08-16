@@ -2,8 +2,10 @@ package tls
 
 import (
 	"context"
+	cryptotls "crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -54,6 +56,35 @@ func TestProbeCertificateExpiryWarningIsCompletedUnhealthy(t *testing.T) {
 	}
 	if result.ErrorCode != "tls_certificate_expiring" {
 		t.Fatalf("unexpected expiry error code: %#v", result)
+	}
+}
+
+func TestProbeClassifiesExpiredCertificate(t *testing.T) {
+	now := time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC)
+	certificate := &x509.Certificate{
+		Raw:          []byte("expired-certificate"),
+		NotBefore:    now.Add(-48 * time.Hour),
+		NotAfter:     now.Add(-24 * time.Hour),
+		DNSNames:     []string{"example.com"},
+		SerialNumber: big.NewInt(1234),
+	}
+	verificationError := &cryptotls.CertificateVerificationError{
+		UnverifiedCertificates: []*x509.Certificate{certificate},
+		Err: x509.CertificateInvalidError{
+			Cert:   certificate,
+			Reason: x509.Expired,
+		},
+	}
+
+	classified, ok := New(nil, nil).verificationFailureResult(
+		verificationError, 443, "example.com", 1.5, now,
+	)
+	if !ok || classified.code != "tls_certificate_expired" {
+		t.Fatalf("unexpected expired certificate classification: %#v", classified)
+	}
+	if !classified.result.CertificatePresent || classified.result.NotAfter == nil ||
+		classified.result.DaysRemaining == nil || *classified.result.DaysRemaining >= 0 {
+		t.Fatalf("expected expired certificate metadata: %#v", classified.result)
 	}
 }
 
