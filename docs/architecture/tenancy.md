@@ -64,9 +64,9 @@ are:
 - `member`; and
 - `viewer`.
 
-The exact permissions attached to these roles require a separate authorization
-design before monitoring-management APIs are exposed. Code must not scatter
-role-name comparisons through route handlers.
+The exact permissions attached to these roles are defined in
+`authorization.md`. Code must not scatter role-name comparisons through route
+handlers.
 
 `User.is_superuser` grants installation-wide administrative authority. It does
 not create implicit membership rows and must not be used as a realm role.
