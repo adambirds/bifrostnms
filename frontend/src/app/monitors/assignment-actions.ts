@@ -18,12 +18,12 @@ export const initialMonitorAssignmentState: MonitorAssignmentState = {
   success: null,
 }
 
-function assignmentError(error: unknown): MonitorAssignmentState {
+function assignmentError(
+  error: unknown,
+  fallback = 'The monitor assignment could not be created.',
+): MonitorAssignmentState {
   return {
-    error:
-      error instanceof ApiRequestError
-        ? error.message
-        : 'The monitor assignment could not be created.',
+    error: error instanceof ApiRequestError ? error.message : fallback,
     success: null,
   }
 }
@@ -72,4 +72,48 @@ export async function assignMonitorToAgentGroupAction(
 
   revalidatePath('/monitors')
   return { error: null, success: 'Monitor assigned to agent group.' }
+}
+
+export async function removeMonitorAgentAssignmentAction(
+  monitorId: string,
+  agentId: string,
+  previousState: MonitorAssignmentState,
+  formData: FormData,
+): Promise<MonitorAssignmentState> {
+  void previousState
+  void formData
+
+  try {
+    await authenticatedApiRequest<void>(
+      `/monitoring/monitors/${monitorId}/agents/${agentId}`,
+      { method: 'DELETE' },
+    )
+  } catch (error) {
+    return assignmentError(error, 'The agent assignment could not be removed.')
+  }
+
+  revalidatePath('/monitors')
+  return { error: null, success: 'Agent assignment removed.' }
+}
+
+export async function removeMonitorAgentGroupAssignmentAction(
+  monitorId: string,
+  groupId: string,
+  previousState: MonitorAssignmentState,
+  formData: FormData,
+): Promise<MonitorAssignmentState> {
+  void previousState
+  void formData
+
+  try {
+    await authenticatedApiRequest<void>(
+      `/monitoring/monitors/${monitorId}/agent-groups/${groupId}`,
+      { method: 'DELETE' },
+    )
+  } catch (error) {
+    return assignmentError(error, 'The agent group assignment could not be removed.')
+  }
+
+  revalidatePath('/monitors')
+  return { error: null, success: 'Agent group assignment removed.' }
 }
