@@ -13,11 +13,6 @@ export type MonitorAssignmentState = {
   success: string | null
 }
 
-export const initialMonitorAssignmentState: MonitorAssignmentState = {
-  error: null,
-  success: null,
-}
-
 function assignmentError(
   error: unknown,
   fallback = 'The monitor assignment could not be created.',
