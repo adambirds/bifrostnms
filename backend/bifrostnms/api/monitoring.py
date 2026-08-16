@@ -4,9 +4,19 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import ValidationError
 from tortoise.exceptions import IntegrityError
 
+from bifrostnms.agents import issue_enrolment_token, revoke_credential, revoke_enrolment_token
+from bifrostnms.auth.audit import AuditActorType, AuditOutcome, record_audit_event
 from bifrostnms.auth.permissions import require_realm_permission
 from bifrostnms.auth.roles import RealmPermission
-from bifrostnms.models import Agent, AgentGroup, Monitor, Target, TargetGroup, TargetGroupMembership
+from bifrostnms.models import (
+    Agent,
+    AgentCredential,
+    AgentGroup,
+    Monitor,
+    Target,
+    TargetGroup,
+    TargetGroupMembership,
+)
 from bifrostnms.monitoring import (
     ResourceStateError,
     add_agent_to_group,
@@ -20,6 +30,7 @@ from bifrostnms.monitoring import (
     unassign_monitor_from_agent_group,
 )
 from bifrostnms.monitoring.domain import MonitoringDomainError
+from bifrostnms.schemas.agent_protocol import AgentCredentialResponse, EnrolmentTokenResponse
 from bifrostnms.schemas.monitoring_api import (
     AgentCreate,
     AgentGroupCreate,
@@ -68,6 +79,93 @@ async def create_agent(payload: AgentCreate, request: Request) -> AgentResponse:
     except IntegrityError as exc:
         raise _conflict("An agent with that name already exists") from exc
     return AgentResponse.model_validate(agent)
+
+
+@router.post(
+    "/agents/{agent_id}/enrolment-tokens",
+    response_model=EnrolmentTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_agent_enrolment_token(agent_id: UUID, request: Request) -> EnrolmentTokenResponse:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_MANAGE)
+    agent = await Agent.filter(id=agent_id, realm=authorization.realm, archived_at=None).first()
+    if agent is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    token, raw_token = await issue_enrolment_token(realm=authorization.realm, agent=agent)
+    await record_audit_event(
+        action="agent.enrolment.create",
+        outcome=AuditOutcome.SUCCESS,
+        actor_type=AuditActorType.USER,
+        request=request,
+        realm=authorization.realm,
+        actor_user=authorization.user,
+        target_type="agent_enrolment_token",
+        target_id=str(token.id),
+        superuser_bypass=authorization.is_superuser_bypass,
+    )
+    return EnrolmentTokenResponse(
+        id=token.id,
+        agent_id=agent.id,
+        enrolment_token=raw_token,
+        expires_at=token.expires_at,
+    )
+
+
+@router.delete("/agents/{agent_id}/enrolment-tokens/{token_id}", status_code=204)
+async def delete_agent_enrolment_token(agent_id: UUID, token_id: UUID, request: Request) -> None:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_MANAGE)
+    agent = await Agent.filter(id=agent_id, realm=authorization.realm).first()
+    if agent is None or not await revoke_enrolment_token(
+        realm=authorization.realm, agent=agent, token_id=token_id
+    ):
+        raise HTTPException(status_code=404, detail="Enrolment token not found")
+    await record_audit_event(
+        action="agent.enrolment.revoke",
+        outcome=AuditOutcome.SUCCESS,
+        actor_type=AuditActorType.USER,
+        request=request,
+        realm=authorization.realm,
+        actor_user=authorization.user,
+        target_type="agent_enrolment_token",
+        target_id=str(token_id),
+        superuser_bypass=authorization.is_superuser_bypass,
+    )
+
+
+@router.get("/agents/{agent_id}/credentials", response_model=list[AgentCredentialResponse])
+async def list_agent_credentials(agent_id: UUID, request: Request) -> list[AgentCredentialResponse]:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    if not await Agent.filter(id=agent_id, realm=authorization.realm).exists():
+        raise HTTPException(status_code=404, detail="Agent not found")
+    credentials = await AgentCredential.filter(
+        agent_id=agent_id, realm=authorization.realm
+    ).order_by("created_at")
+    return [
+        AgentCredentialResponse.model_validate(item, from_attributes=True) for item in credentials
+    ]
+
+
+@router.delete("/agents/{agent_id}/credentials/{credential_id}", status_code=204)
+async def delete_agent_credential(agent_id: UUID, credential_id: UUID, request: Request) -> None:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_MANAGE)
+    credential = await AgentCredential.filter(
+        id=credential_id, agent_id=agent_id, realm=authorization.realm
+    ).first()
+    if credential is None or not await revoke_credential(
+        realm=authorization.realm, credential_id=credential.id
+    ):
+        raise HTTPException(status_code=404, detail="Agent credential not found")
+    await record_audit_event(
+        action="agent.credential.revoke",
+        outcome=AuditOutcome.SUCCESS,
+        actor_type=AuditActorType.USER,
+        request=request,
+        realm=authorization.realm,
+        actor_user=authorization.user,
+        target_type="agent_credential",
+        target_id=str(credential.id),
+        superuser_bypass=authorization.is_superuser_bypass,
+    )
 
 
 @router.get("/targets", response_model=list[TargetResponse])
