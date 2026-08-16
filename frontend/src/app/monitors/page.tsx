@@ -186,12 +186,20 @@ export default async function MonitorsPage() {
                         </div>
                       </td>
                       <td>
-                        <Link
-                          className="secondary compact-action"
-                          href={`/monitors/${monitor.id}/edit`}
-                        >
-                          Edit
-                        </Link>
+                        <div className="page-actions">
+                          <Link
+                            className="secondary compact-action"
+                            href={`/monitors/${monitor.id}`}
+                          >
+                            View
+                          </Link>
+                          <Link
+                            className="secondary compact-action"
+                            href={`/monitors/${monitor.id}/edit`}
+                          >
+                            Edit
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   )
