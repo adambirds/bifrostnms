@@ -46,12 +46,12 @@ func (p *Probe) Run(ctx context.Context, request probe.Request) probe.Result {
 	configuration, err := DecodeConfiguration(request.Configuration)
 	if err != nil {
 		return failedResult(startedAt, p.now().UTC(), probe.ErrorInvalidConfiguration,
-			"invalid_icmp_configuration", "ICMP configuration is invalid.")
+			"invalid_icmp_configuration", "ICMP configuration is invalid.", err)
 	}
 	packetTimeout, err := configuration.Timeout(request.Timeout)
 	if err != nil {
 		return failedResult(startedAt, p.now().UTC(), probe.ErrorInvalidConfiguration,
-			"icmp_sequence_exceeds_timeout", "ICMP packet sequence exceeds the monitor timeout.")
+			"icmp_sequence_exceeds_timeout", "ICMP packet sequence exceeds the monitor timeout.", err)
 	}
 	samples, err := p.transport.Exchange(
 		ctx, request.TargetAddress, configuration.AddressFamily,
@@ -65,7 +65,7 @@ func (p *Probe) Run(ctx context.Context, request probe.Request) probe.Result {
 	result, err := CalculateResult(configuration.PacketCount, samples)
 	if err != nil {
 		return failedResult(startedAt, finishedAt, probe.ErrorInternal,
-			"invalid_icmp_samples", "ICMP transport returned invalid samples.")
+			"invalid_icmp_samples", "ICMP transport returned invalid samples.", err)
 	}
 	assessment := probe.AssessmentUnhealthy
 	if Assess(configuration, result) {
@@ -83,33 +83,37 @@ func classifyTransportError(
 ) probe.Result {
 	if errors.Is(ctx.Err(), context.Canceled) {
 		return failedResult(startedAt, finishedAt, probe.ErrorInternal,
-			"probe_cancelled", "ICMP probe was cancelled.")
+			"probe_cancelled", "ICMP probe was cancelled.", err)
 	}
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
 		return failedResult(startedAt, finishedAt, probe.ErrorTimeout,
-			"icmp_timeout", "ICMP probe timed out.")
+			"icmp_timeout", "ICMP probe timed out.", err)
 	}
 	if errors.Is(err, os.ErrPermission) || errors.Is(err, syscall.EPERM) ||
 		errors.Is(err, syscall.EACCES) {
 		return failedResult(startedAt, finishedAt, probe.ErrorPermission,
-			"icmp_permission_denied", "ICMP raw socket permission is unavailable.")
+			"icmp_permission_denied", "ICMP raw socket permission is unavailable.", err)
 	}
 	var dnsError *net.DNSError
 	if errors.As(err, &dnsError) {
 		return failedResult(startedAt, finishedAt, probe.ErrorResolution,
-			"icmp_resolution_failed", "ICMP target resolution failed.")
+			"icmp_resolution_failed", "ICMP target resolution failed.", err)
 	}
 	return failedResult(startedAt, finishedAt, probe.ErrorConnection,
-		"icmp_network_error", "ICMP exchange failed.")
+		"icmp_network_error", "ICMP exchange failed.", err)
 }
 
 func failedResult(
 	startedAt time.Time, finishedAt time.Time, category probe.ErrorCategory,
-	code string, message string,
+	code string, message string, diagnostic error,
 ) probe.Result {
-	return probe.Result{
+	result := probe.Result{
 		StartedAt: startedAt, FinishedAt: finishedAt,
 		ExecutionStatus: probe.ExecutionFailed, Assessment: probe.AssessmentUnknown,
 		ErrorCategory: &category, ErrorCode: code, ErrorMessage: message,
 	}
+	if diagnostic != nil {
+		result.DiagnosticError = diagnostic.Error()
+	}
+	return result
 }
