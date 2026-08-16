@@ -4,10 +4,15 @@ import { useActionState } from 'react'
 
 import {
   createMonitorAction,
-  initialMonitorFormState,
+  type MonitorFormState,
 } from '@/app/monitors/actions'
 import { MonitorFields } from '@/app/monitors/monitor-fields'
 import type { Target } from '@/lib/monitoring'
+
+const initialMonitorFormState: MonitorFormState = {
+  error: null,
+  success: null,
+}
 
 export function MonitorForm({ targets }: { targets: Target[] }) {
   const [state, formAction, pending] = useActionState(
