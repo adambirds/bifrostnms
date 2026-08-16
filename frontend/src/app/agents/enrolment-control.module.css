@@ -1,0 +1,57 @@
+.control {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 15rem;
+}
+
+.tokenPanel {
+  display: grid;
+  gap: 0.65rem;
+  min-width: min(34rem, 80vw);
+  padding: 0.85rem;
+  border: 1px solid #2a3c60;
+  border-radius: 12px;
+  background: #071225;
+}
+
+.tokenPanel p {
+  margin: 0;
+}
+
+.tokenRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.token {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  color: #78c9ff;
+}
+
+.secondaryButton {
+  border-color: #2a3c60;
+  background: #142546;
+}
+
+.command {
+  padding: 0.75rem;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #0b1831;
+  color: #c6d0e0;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.warning {
+  color: #f6c85f;
+  font-size: 0.8rem;
+}
+
+.expiry {
+  color: #8fa3c4;
+  font-size: 0.8rem;
+}
