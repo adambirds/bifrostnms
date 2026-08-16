@@ -23,6 +23,22 @@ const (
 
 var ErrObservationTooLarge = errors.New("observation exceeds upload batch limit")
 
+var ErrInvalidObservation = errors.New("observation payload is not valid JSON")
+
+type OversizedObservationError struct {
+	Observation storage.Observation
+}
+
+func (e *OversizedObservationError) Error() string { return ErrObservationTooLarge.Error() }
+func (e *OversizedObservationError) Unwrap() error { return ErrObservationTooLarge }
+
+type InvalidObservationError struct {
+	Observation storage.Observation
+}
+
+func (e *InvalidObservationError) Error() string { return ErrInvalidObservation.Error() }
+func (e *InvalidObservationError) Unwrap() error { return ErrInvalidObservation }
+
 type Batch struct {
 	Upload       protocol.ObservationUpload
 	Observations []storage.Observation
@@ -61,7 +77,7 @@ func BuildBatch(
 			break
 		}
 		if !json.Valid(observation.CanonicalPayload) {
-			return Batch{}, fmt.Errorf("%w: invalid canonical JSON", ErrObservationTooLarge)
+			return Batch{}, &InvalidObservationError{Observation: observation}
 		}
 		upload.Observations = append(upload.Observations, observation.CanonicalPayload)
 		candidate, marshalErr := json.Marshal(upload)
@@ -71,7 +87,7 @@ func BuildBatch(
 		if len(candidate) > maxBytes {
 			upload.Observations = upload.Observations[:len(upload.Observations)-1]
 			if len(selected) == 0 {
-				return Batch{}, ErrObservationTooLarge
+				return Batch{}, &OversizedObservationError{Observation: observation}
 			}
 			break
 		}
