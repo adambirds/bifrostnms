@@ -86,6 +86,26 @@ export type Monitor = {
   updated_at: string
 }
 
+export type MonitorAgentAssignment = {
+  id: string
+  realm_id: string
+  monitor_id: string
+  agent_id: string
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type MonitorAgentGroupAssignment = {
+  id: string
+  realm_id: string
+  monitor_id: string
+  agent_group_id: string
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type AgentStatus = {
   agent_id: string
   online: boolean
