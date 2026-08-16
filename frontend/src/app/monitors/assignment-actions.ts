@@ -111,7 +111,10 @@ export async function removeMonitorAgentGroupAssignmentAction(
       { method: 'DELETE' },
     )
   } catch (error) {
-    return assignmentError(error, 'The agent group assignment could not be removed.')
+    return assignmentError(
+      error,
+      'The agent group assignment could not be removed.',
+    )
   }
 
   revalidatePath('/monitors')
