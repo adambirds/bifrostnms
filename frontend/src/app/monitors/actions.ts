@@ -11,11 +11,6 @@ export type MonitorFormState = {
   success: string | null
 }
 
-export const initialMonitorFormState: MonitorFormState = {
-  error: null,
-  success: null,
-}
-
 export async function createMonitorAction(
   previousState: MonitorFormState,
   formData: FormData,
