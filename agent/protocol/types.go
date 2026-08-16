@@ -116,6 +116,29 @@ type ErrorResponse struct {
 	Error ErrorBody `json:"error"`
 }
 
+type ObservationUpload struct {
+	ProtocolVersion     int               `json:"protocol_version"`
+	ResultSchemaVersion int               `json:"result_schema_version"`
+	AgentConfigRevision int64             `json:"agent_config_revision"`
+	BatchID             string            `json:"batch_id"`
+	Observations        []json.RawMessage `json:"observations"`
+}
+
+type ObservationResult struct {
+	ScheduledAt   time.Time `json:"scheduled_at"`
+	ObservationID string    `json:"observation_id"`
+	Disposition   string    `json:"disposition"`
+	Code          string    `json:"code,omitempty"`
+	Retryable     bool      `json:"retryable,omitempty"`
+}
+
+type ObservationUploadResponse struct {
+	ProtocolVersion   int                 `json:"protocol_version"`
+	BatchID           string              `json:"batch_id"`
+	Results           []ObservationResult `json:"results"`
+	RetryAfterSeconds *int                `json:"retry_after_seconds"`
+}
+
 var (
 	ErrConfigurationIdentity   = errors.New("configuration identity does not match enrolled agent")
 	ErrConfigurationHash       = errors.New("configuration content hash is invalid")
