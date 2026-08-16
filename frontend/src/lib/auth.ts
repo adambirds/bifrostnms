@@ -25,3 +25,18 @@ export async function requireUser(): Promise<CurrentUser> {
   const data = await response.json()
   return data.user as CurrentUser
 }
+
+export async function authenticatedApiFetch<T>(path: string): Promise<T> {
+  const cookieStore = await cookies()
+  const response = await fetch(`${apiUrl}${path}`, {
+    headers: { cookie: cookieStore.toString() },
+    cache: 'no-store',
+  })
+  if (response.status === 401) redirect(`${authUrl}/login?next=/`)
+  if (!response.ok) {
+    throw new Error(
+      `BifrostNMS API request failed with status ${response.status}.`,
+    )
+  }
+  return (await response.json()) as T
+}

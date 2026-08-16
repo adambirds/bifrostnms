@@ -93,6 +93,119 @@ nav a:first-child {
   color: #78c9ff;
 }
 
+.latency-panel {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #213253;
+  border-radius: 16px;
+  background: #0b1831;
+}
+
+.panel-heading,
+.graph-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-heading h2 {
+  margin: 0.25rem 0 0;
+}
+
+.eyebrow {
+  color: #78c9ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.graph-wrap {
+  margin-top: 1rem;
+}
+
+.icmp-graph {
+  display: block;
+  width: 100%;
+  min-height: 240px;
+  border-radius: 10px;
+  background: #071225;
+}
+
+.graph-grid {
+  stroke: #203150;
+  stroke-width: 1;
+}
+
+.graph-label {
+  fill: #7388ab;
+  font-size: 10px;
+}
+
+.rtt-range {
+  stroke: #27d79b;
+  stroke-opacity: 0.3;
+  stroke-width: 4;
+}
+
+.rtt-sample {
+  fill: #6ce6bd;
+  opacity: 0.55;
+}
+
+.median-line {
+  fill: none;
+  stroke: #f6c85f;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.loss-column {
+  fill: #f45b69;
+}
+
+.graph-legend {
+  justify-content: flex-start;
+  margin-top: 0.75rem;
+  color: #8fa3c4;
+  font-size: 0.8rem;
+}
+
+.graph-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.graph-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.sample-key {
+  background: #6ce6bd;
+}
+
+.median-key {
+  background: #f6c85f;
+}
+
+.loss-key {
+  background: #f45b69;
+}
+
+.empty-graph {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  margin-top: 1rem;
+  border-radius: 10px;
+  background: #071225;
+  color: #8fa3c4;
+}
+
 @media (width <= 800px) {
   .shell {
     grid-template-columns: 1fr;
