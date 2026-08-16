@@ -233,6 +233,14 @@ class DnsObservationResult(BaseModel):
     assertions_total: int = Field(ge=0, le=100)
     assertions_failed: int = Field(ge=0, le=100)
 
+    @model_validator(mode="after")
+    def validate_counts(self) -> Self:
+        if len(self.answers) != self.answer_count:
+            raise ValueError("answer count must equal the number of answers")
+        if self.assertions_failed > self.assertions_total:
+            raise ValueError("assertions_failed cannot exceed assertions_total")
+        return self
+
 
 class TlsObservationResult(BaseModel):
     port: int = Field(ge=1, le=65535)
@@ -250,6 +258,16 @@ class TlsObservationResult(BaseModel):
     issuer_name: str | None = Field(default=None, max_length=500)
     serial_number: str | None = Field(default=None, max_length=160)
     fingerprint_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_certificate_dates(self) -> Self:
+        if (
+            self.not_before is not None
+            and self.not_after is not None
+            and self.not_after < self.not_before
+        ):
+            raise ValueError("certificate expiry cannot precede its start date")
+        return self
 
 
 ObservationResult = (
