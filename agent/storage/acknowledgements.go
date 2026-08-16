@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -27,6 +28,95 @@ type ObservationAcknowledgement struct {
 	Retryable     bool
 	Details       string
 	NextAttemptAt time.Time
+}
+
+type SynchronizationState struct {
+	LastSuccessfulContactAt *time.Time
+	LastSuccessfulUploadAt  *time.Time
+	ConsecutiveFailureCount int
+	ServerBackoffUntil      *time.Time
+}
+
+func (s *Store) RecordSynchronizationFailure(
+	ctx context.Context, backoffUntil time.Time,
+) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE synchronization_state SET
+			consecutive_failure_count = consecutive_failure_count + 1,
+			server_backoff_until = ?
+		WHERE singleton_id = 1`, formatTime(backoffUntil))
+	if err != nil {
+		return fmt.Errorf("record synchronization failure: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) SynchronizationState(ctx context.Context) (SynchronizationState, error) {
+	var state SynchronizationState
+	var lastContact, lastUpload, backoff sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+		SELECT last_successful_contact_at, last_successful_upload_at,
+			consecutive_failure_count, server_backoff_until
+		FROM synchronization_state WHERE singleton_id = 1`).Scan(
+		&lastContact, &lastUpload, &state.ConsecutiveFailureCount, &backoff,
+	)
+	if err != nil {
+		return SynchronizationState{}, fmt.Errorf("read synchronization state: %w", err)
+	}
+	var parseErr error
+	if state.LastSuccessfulContactAt, parseErr = parseOptionalTime(lastContact); parseErr != nil {
+		return SynchronizationState{}, parseErr
+	}
+	if state.LastSuccessfulUploadAt, parseErr = parseOptionalTime(lastUpload); parseErr != nil {
+		return SynchronizationState{}, parseErr
+	}
+	if state.ServerBackoffUntil, parseErr = parseOptionalTime(backoff); parseErr != nil {
+		return SynchronizationState{}, parseErr
+	}
+	return state, nil
+}
+
+func (s *Store) QuarantineObservation(
+	ctx context.Context, observation Observation, code string, details string, now time.Time,
+) error {
+	if code == "" || len(details) > maxRejectionDetailsBytes {
+		return errors.New("valid bounded rejection details are required")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin local observation quarantine: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `
+		INSERT INTO rejected_observations (
+			scheduled_at, observation_id, canonical_payload,
+			payload_size_bytes, rejection_code, rejection_details, rejected_at
+		)
+		SELECT scheduled_at, observation_id, canonical_payload,
+			payload_size_bytes, ?, ?, ?
+		FROM pending_observations
+		WHERE scheduled_at = ? AND observation_id = ?`,
+		code, details, formatTime(now), formatTime(observation.ScheduledAt),
+		observation.ObservationID,
+	)
+	if err != nil {
+		return fmt.Errorf("quarantine local observation: %w", err)
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil || inserted != 1 {
+		return fmt.Errorf("quarantine local observation: pending row not found")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM pending_observations
+		WHERE scheduled_at = ? AND observation_id = ?`,
+		formatTime(observation.ScheduledAt), observation.ObservationID,
+	); err != nil {
+		return fmt.Errorf("remove locally quarantined observation: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit local observation quarantine: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) ApplyAcknowledgements(
