@@ -1,0 +1,15 @@
+{
+  "method": "GET",
+  "scheme": "https",
+  "status_code": 200,
+  "redirect_count": 1,
+  "response_size_bytes": 128,
+  "dns_ms": 2.5,
+  "connect_ms": 5.5,
+  "tls_ms": 8.25,
+  "ttfb_ms": 21.75,
+  "total_ms": 24.0,
+  "assertions_total": 3,
+  "assertions_failed": 0,
+  "final_url_redacted": "https://monitor.example.com/health?token=REDACTED"
+}

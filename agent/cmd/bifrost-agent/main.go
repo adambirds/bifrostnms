@@ -16,6 +16,7 @@ import (
 
 	"github.com/adambirds/bifrostnms/agent/engine"
 	"github.com/adambirds/bifrostnms/agent/probe"
+	httpprobe "github.com/adambirds/bifrostnms/agent/probes/http"
 	"github.com/adambirds/bifrostnms/agent/probes/icmp"
 	tcpprobe "github.com/adambirds/bifrostnms/agent/probes/tcp"
 	"github.com/adambirds/bifrostnms/agent/protocol"
@@ -194,12 +195,13 @@ func activeIdentity(
 func agentCapabilities(
 	ctx context.Context,
 ) (protocol.Capabilities, *probe.Registry, error) {
-	registry, err := probe.NewRegistry(icmp.New(nil), tcpprobe.New(nil))
+	registry, err := probe.NewRegistry(icmp.New(nil), httpprobe.New(nil), tcpprobe.New(nil))
 	if err != nil {
 		return protocol.Capabilities{}, nil, err
 	}
 	detected := registry.DetectCapabilities(ctx, map[probe.Type]probe.AvailabilityDetector{
 		probe.TypeICMP: icmp.NativeSocketAvailable,
+		probe.TypeHTTP: func(context.Context) bool { return true },
 		probe.TypeTCP:  func(context.Context) bool { return true },
 	})
 	probes := make(map[string]protocol.ProbeCapability, len(detected))
