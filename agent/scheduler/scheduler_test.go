@@ -18,6 +18,12 @@ type controlledProbe struct {
 	release <-chan struct{}
 }
 
+type panicProbe struct{ controlledProbe }
+
+func (panicProbe) Run(context.Context, probe.Request) probe.Result {
+	panic("sensitive implementation detail")
+}
+
 func (controlledProbe) Type() probe.Type                   { return probe.TypeTCP }
 func (controlledProbe) ConfigurationSchemaVersion() uint32 { return 1 }
 func (controlledProbe) ResultSchemaVersion() uint32        { return 1 }
@@ -192,4 +198,59 @@ func TestPersistedSchedulerSkipsElapsedRunsAfterRestart(t *testing.T) {
 	if err != nil || state.MissedRunCount != 3 {
 		t.Fatalf("persisted schedule state = %#v, error = %v", state, err)
 	}
+}
+
+func TestSchedulerRunCancelsActiveProbeOnShutdown(t *testing.T) {
+	var runs atomic.Int32
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	registry, _ := probe.NewRegistry(controlledProbe{
+		runs: &runs, started: started, release: release,
+	})
+	scheduler, _ := New(registry, 1)
+	assignment := testAssignment("monitor-a")
+	assignment.Timeout = 4 * time.Second
+	now := time.Now().UTC()
+	if err := scheduler.Reconcile(context.Background(), []Assignment{assignment}, now); err != nil {
+		t.Fatalf("reconcile scheduler: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- scheduler.Run(ctx, time.Millisecond, nil) }()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("scheduled probe did not start")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("stop scheduler: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("scheduler did not cancel active probe during shutdown")
+	}
+	<-scheduler.Results()
+}
+
+func TestSchedulerContainsProbePanic(t *testing.T) {
+	registry, _ := probe.NewRegistry(panicProbe{})
+	scheduler, _ := New(registry, 1)
+	now := time.Now().UTC()
+	if err := scheduler.Reconcile(
+		context.Background(), []Assignment{testAssignment("monitor-a")}, now,
+	); err != nil {
+		t.Fatalf("reconcile scheduler: %v", err)
+	}
+	if _, err := scheduler.Tick(context.Background(), scheduler.NextDue()["monitor-a"]); err != nil {
+		t.Fatalf("tick scheduler: %v", err)
+	}
+	result := <-scheduler.Results()
+	if result.Result.ExecutionStatus != probe.ExecutionFailed ||
+		result.Result.ErrorCode != "probe_panic" ||
+		result.Result.ErrorMessage != "Probe stopped after an internal failure." {
+		t.Fatalf("contained panic result = %#v", result.Result)
+	}
+	scheduler.Wait()
 }
