@@ -20,6 +20,8 @@ AvailabilityState = Literal[
     "disabled",
 ]
 MonitorHeadline = Literal["healthy", "degraded", "unhealthy", "unknown", "disabled"]
+ExecutionStatus = Literal["completed", "failed"]
+Assessment = Literal["healthy", "unhealthy", "unknown"]
 
 
 class ObservationSummary(BaseModel):
@@ -29,8 +31,8 @@ class ObservationSummary(BaseModel):
     monitor_id: UUID
     agent_id: UUID
     probe_type: ProbeType
-    execution_status: Literal["completed", "failed"]
-    assessment: Literal["healthy", "unhealthy", "unknown"]
+    execution_status: ExecutionStatus
+    assessment: Assessment
     error_category: str | None = None
     error_code: str | None = None
     error_message: str | None = None
@@ -48,8 +50,8 @@ class MonitorAgentState(BaseModel):
     last_observation_id: UUID | None = None
     last_scheduled_at: datetime | None = None
     last_received_at: datetime | None = None
-    execution_status: Literal["completed", "failed"] | None = None
-    assessment: Literal["healthy", "unhealthy", "unknown"] | None = None
+    execution_status: ExecutionStatus | None = None
+    assessment: Assessment | None = None
 
 
 class MonitorStateSummary(BaseModel):
