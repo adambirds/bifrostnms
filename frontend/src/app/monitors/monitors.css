@@ -32,6 +32,7 @@
   display: grid;
   min-width: 200px;
   gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .assignment-form select {
@@ -51,4 +52,33 @@
 
 .assignment-form button {
   padding: 0.5rem 0.75rem;
+}
+
+.assignment-list {
+  display: grid;
+  min-width: 200px;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.assignment-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.assignment-remove-form {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.assignment-remove-form button {
+  padding: 0.35rem 0.55rem;
+  border-color: #5f2d39;
+  background: #3d1d27;
+  font-size: 0.8rem;
 }
