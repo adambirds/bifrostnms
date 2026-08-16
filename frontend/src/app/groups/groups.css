@@ -1,0 +1,41 @@
+.group-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.membership-form {
+  display: grid;
+  min-width: 220px;
+  gap: 0.5rem;
+}
+
+.membership-form select {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #2a3c60;
+  border-radius: 10px;
+  outline: none;
+  background: #071225;
+  color: #f8fafc;
+}
+
+.membership-form select:focus {
+  border-color: #4ea7ff;
+  box-shadow: 0 0 0 2px rgb(78 167 255 / 18%);
+}
+
+.membership-form button {
+  padding: 0.5rem 0.75rem;
+}
+
+.form-success {
+  margin: 0;
+  color: #6ce6bd;
+}
+
+@media (width <= 1100px) {
+  .group-columns {
+    grid-template-columns: 1fr;
+  }
+}
