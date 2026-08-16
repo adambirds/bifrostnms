@@ -4,7 +4,10 @@ import pytest
 from pydantic import ValidationError
 
 from bifrostnms.models import ProbeType
-from bifrostnms.schemas.monitoring import serialize_probe_configuration, validate_probe_configuration
+from bifrostnms.schemas.monitoring import (
+    serialize_probe_configuration,
+    validate_probe_configuration,
+)
 
 
 def test_tls_configuration_materializes_secure_defaults() -> None:
