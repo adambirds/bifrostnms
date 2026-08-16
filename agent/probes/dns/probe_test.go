@@ -2,8 +2,10 @@ package dns
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -30,6 +32,24 @@ func TestProbeExplicitResolverReturnsTypedAnswer(t *testing.T) {
 	}
 	if typed.Answers[0].Value != "192.0.2.10" || typed.AssertionsFailed != 0 {
 		t.Fatalf("unexpected DNS answer: %#v", typed)
+	}
+}
+
+func TestProbeFallsBackToTCPWhenUDPResponseIsTruncated(t *testing.T) {
+	resolverAddress, stop := startTruncatingResolver(t)
+	defer stop()
+	configuration := explicitConfiguration(t, resolverAddress, map[string]any{
+		"expected_answers": []map[string]string{{"value": "192.0.2.10"}},
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result := New(nil).Run(ctx, probe.Request{TargetAddress: "example.com", Configuration: configuration})
+	if result.ExecutionStatus != probe.ExecutionCompleted || result.Assessment != probe.AssessmentHealthy {
+		t.Fatalf("unexpected outcome after TCP fallback: %#v", result)
+	}
+	typed := result.ProbeResult.(Result)
+	if typed.Truncated || typed.AnswerCount != 1 || typed.Answers[0].Value != "192.0.2.10" {
+		t.Fatalf("unexpected fallback result: %#v", typed)
 	}
 }
 
@@ -73,7 +93,7 @@ func startUDPResolver(t *testing.T, nxdomain bool) (string, func()) {
 			if readErr != nil {
 				return
 			}
-			response, responseErr := buildTestResponse(buffer[:count], nxdomain)
+			response, responseErr := buildTestResponse(buffer[:count], nxdomain, false)
 			if responseErr == nil {
 				_, _ = connection.WriteTo(response, remote)
 			}
@@ -86,7 +106,70 @@ func startUDPResolver(t *testing.T, nxdomain bool) (string, func()) {
 	return connection.LocalAddr().String(), stop
 }
 
-func buildTestResponse(query []byte, nxdomain bool) ([]byte, error) {
+func startTruncatingResolver(t *testing.T) (string, func()) {
+	t.Helper()
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	udpConnection, err := net.ListenPacket("udp", tcpListener.Addr().String())
+	if err != nil {
+		_ = tcpListener.Close()
+		t.Fatal(err)
+	}
+	udpStopped := make(chan struct{})
+	tcpStopped := make(chan struct{})
+	go func() {
+		defer close(udpStopped)
+		buffer := make([]byte, MaximumMessageBytes)
+		for {
+			count, remote, readErr := udpConnection.ReadFrom(buffer)
+			if readErr != nil {
+				return
+			}
+			response, responseErr := buildTestResponse(buffer[:count], false, true)
+			if responseErr == nil {
+				_, _ = udpConnection.WriteTo(response, remote)
+			}
+		}
+	}()
+	go func() {
+		defer close(tcpStopped)
+		for {
+			connection, acceptErr := tcpListener.Accept()
+			if acceptErr != nil {
+				return
+			}
+			func() {
+				defer func() { _ = connection.Close() }()
+				prefix := make([]byte, 2)
+				if _, readErr := io.ReadFull(connection, prefix); readErr != nil {
+					return
+				}
+				length := int(binary.BigEndian.Uint16(prefix))
+				query := make([]byte, length)
+				if _, readErr := io.ReadFull(connection, query); readErr != nil {
+					return
+				}
+				response, responseErr := buildTestResponse(query, false, false)
+				if responseErr != nil {
+					return
+				}
+				binary.BigEndian.PutUint16(prefix, uint16(len(response)))
+				_, _ = connection.Write(append(prefix, response...))
+			}()
+		}
+	}()
+	stop := func() {
+		_ = udpConnection.Close()
+		_ = tcpListener.Close()
+		<-udpStopped
+		<-tcpStopped
+	}
+	return tcpListener.Addr().String(), stop
+}
+
+func buildTestResponse(query []byte, nxdomain bool, truncated bool) ([]byte, error) {
 	var parser dnsmessage.Parser
 	header, err := parser.Start(query)
 	if err != nil {
@@ -101,7 +184,7 @@ func buildTestResponse(query []byte, nxdomain bool) ([]byte, error) {
 		rcode = dnsmessage.RCodeNameError
 	}
 	builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{ID: header.ID, Response: true,
-		Authoritative: true, RecursionDesired: header.RecursionDesired, RCode: rcode})
+		Authoritative: true, Truncated: truncated, RecursionDesired: header.RecursionDesired, RCode: rcode})
 	builder.EnableCompression()
 	if err := builder.StartQuestions(); err != nil {
 		return nil, err
@@ -109,7 +192,7 @@ func buildTestResponse(query []byte, nxdomain bool) ([]byte, error) {
 	if err := builder.Question(questions[0]); err != nil {
 		return nil, err
 	}
-	if !nxdomain {
+	if !nxdomain && !truncated {
 		if err := builder.StartAnswers(); err != nil {
 			return nil, err
 		}
