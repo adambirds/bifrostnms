@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "port": 8443,
+  "server_name": "monitor.example.com",
+  "address_family": "auto",
+  "minimum_tls_version": "1.2",
+  "expiry_warning_days": 30
+}
