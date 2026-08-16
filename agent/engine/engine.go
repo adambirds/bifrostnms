@@ -96,18 +96,22 @@ func (e *Engine) NextDue() map[string]time.Time       { return e.scheduler.NextD
 func (e *Engine) RecordExecution(
 	ctx context.Context, execution scheduler.Execution, createdAt time.Time,
 ) error {
+	request := execution.Request
+	request.ScheduledAt = request.ScheduledAt.Truncate(time.Microsecond)
+	execution.Result.StartedAt = execution.Result.StartedAt.Truncate(time.Microsecond)
+	execution.Result.FinishedAt = execution.Result.FinishedAt.Truncate(time.Microsecond)
 	payload, err := probe.EncodeObservation(
-		execution.ProbeType, execution.Request, execution.Result, nil,
+		execution.ProbeType, request, execution.Result, nil,
 	)
 	if err != nil {
 		return fmt.Errorf("encode completed probe execution: %w", err)
 	}
 	return e.store.EnqueueObservation(ctx, storage.Observation{
-		ScheduledAt:         execution.Request.ScheduledAt,
-		ObservationID:       execution.Request.ObservationID,
-		MonitorID:           execution.Request.MonitorID,
-		MonitorRevision:     execution.Request.MonitorRevision,
-		AgentConfigRevision: execution.Request.AgentConfigRevision,
+		ScheduledAt:         request.ScheduledAt,
+		ObservationID:       request.ObservationID,
+		MonitorID:           request.MonitorID,
+		MonitorRevision:     request.MonitorRevision,
+		AgentConfigRevision: request.AgentConfigRevision,
 		ProbeType:           string(execution.ProbeType), CanonicalPayload: payload,
 		CreatedAt: createdAt,
 	}, e.limits)
