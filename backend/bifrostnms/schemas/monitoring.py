@@ -2,9 +2,17 @@ from __future__ import annotations
 
 import ipaddress
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationInfo, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from bifrostnms.models import ProbeType
 
@@ -189,6 +197,16 @@ class DnsProbeConfiguration(ProbeConfiguration):
             raise ValueError("system DNS resolver mode uses platform resolver transport behavior")
         return value
 
+    @model_validator(mode="after")
+    def validate_resolver_mode(self) -> Self:
+        if self.resolver_mode == "explicit" and self.resolver_address is None:
+            raise ValueError("resolver_address is required for explicit DNS resolver mode")
+        if self.resolver_mode == "system" and self.resolver_address is not None:
+            raise ValueError("resolver_address is not permitted for system DNS resolver mode")
+        if self.resolver_mode == "system" and self.transport != "udp_with_tcp_fallback":
+            raise ValueError("system DNS resolver mode uses platform resolver transport behavior")
+        return self
+
     @field_validator("query_name")
     @classmethod
     def normalize_query_name(cls, value: str | None) -> str | None:
@@ -226,6 +244,12 @@ class TlsProbeConfiguration(ProbeConfiguration):
         if value is None:
             return None
         normalized = value.strip().rstrip(".").lower()
+        try:
+            ipaddress.ip_address(normalized)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("server_name must be a hostname, not an IP address")
         labels = normalized.split(".")
         if any(
             not label
