@@ -11,11 +11,6 @@ export type MonitorEditState = {
   success: string | null
 }
 
-export const initialMonitorEditState: MonitorEditState = {
-  error: null,
-  success: null,
-}
-
 export async function updateMonitorAction(
   monitorId: string,
   previousState: MonitorEditState,
