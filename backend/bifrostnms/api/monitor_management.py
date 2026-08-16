@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -70,9 +71,12 @@ async def update_monitor(
             configuration=payload.configuration,
         )
         if monitor.name != name or monitor.description != description:
-            monitor.name = name
-            monitor.description = description
-            await monitor.save(update_fields=["name", "description", "updated_at"])
+            await Monitor.filter(id=monitor.id, realm=authorization.realm).update(
+                name=name,
+                description=description,
+                updated_at=datetime.now(UTC),
+            )
+            await monitor.refresh_from_db()
     except IntegrityError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

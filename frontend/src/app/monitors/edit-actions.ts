@@ -3,10 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { ApiRequestError, authenticatedApiRequest } from '@/lib/auth'
-import {
-  buildMonitorConfiguration,
-  requiredNumber,
-} from '@/lib/monitor-form'
+import { buildMonitorConfiguration, requiredNumber } from '@/lib/monitor-form'
 import type { Monitor, ProbeType } from '@/lib/monitoring'
 
 export type MonitorEditState = {
