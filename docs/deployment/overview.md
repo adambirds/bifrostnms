@@ -36,18 +36,32 @@ release notes identify meaningful schema or extension risk.
 
 ## Persistent state
 
-| Service            | Persistent state                                    | Requirement                                                                        |
-| ------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| TimescaleDB        | PostgreSQL data directory                           | Durable volume and tested backups are mandatory.                                   |
-| Redis              | Sessions and Celery state                           | Persistence is recommended when session/queued-task continuity is required.        |
-| API                | None                                                | Instances are replaceable after configuration and secrets are supplied.            |
-| Celery worker/Beat | Beat schedule file only when file scheduler is used | Prefer an explicit small volume or a future database-backed scheduler.             |
-| Next.js frontends  | None                                                | Instances are replaceable.                                                         |
-| Agent              | SQLite configuration and observation queue          | Durable host path/volume is mandatory once the agent storage stage is implemented. |
+| Service            | Persistent state                                    | Requirement                                                                 |
+| ------------------ | --------------------------------------------------- | --------------------------------------------------------------------------- |
+| TimescaleDB        | PostgreSQL data directory                           | Durable volume and tested backups are mandatory.                            |
+| Redis              | Sessions and Celery state                           | Persistence is recommended when session/queued-task continuity is required. |
+| API                | None                                                | Instances are replaceable after configuration and secrets are supplied.     |
+| Celery worker/Beat | Beat schedule file only when file scheduler is used | Prefer an explicit small volume or a future database-backed scheduler.      |
+| Next.js frontends  | None                                                | Instances are replaceable.                                                  |
+| Agent              | SQLite configuration and observation queue          | Mount a durable writable volume at `/var/lib/bifrostnms-agent`.             |
 
 Do not place PostgreSQL and agent SQLite data on ephemeral container layers.
 Redis loss signs users out and may lose queued work; its persistence policy must
 match the deployment's recovery objectives.
+
+## Agent privileges
+
+The agent image runs as the dedicated unprivileged `bifrostnms` user. Its
+binary carries only the `CAP_NET_RAW` file capability required to open native
+ICMP sockets; do not run the complete container as root or grant it the broader
+`--privileged` mode. The container runtime and the filesystem holding the image
+must preserve file capabilities.
+
+Mount `/var/lib/bifrostnms-agent` as a writable volume owned by the container's
+`bifrostnms` user. If an installation replaces the packaged binary, it must
+grant that binary `cap_net_raw=ep` or supply the equivalent narrowly scoped
+runtime capability. A missing capability is an agent operational error, not
+packet loss or a target failure.
 
 ## Secrets
 
