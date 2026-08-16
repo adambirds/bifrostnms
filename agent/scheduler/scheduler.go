@@ -57,6 +57,7 @@ type job struct {
 
 type Scheduler struct {
 	registry *probe.Registry
+	state    StateStore
 	workers  chan struct{}
 	results  chan Execution
 	mu       sync.Mutex
@@ -65,20 +66,44 @@ type Scheduler struct {
 	wait     sync.WaitGroup
 }
 
-func New(registry *probe.Registry, maximumConcurrent int) (*Scheduler, error) {
+type StateStore interface {
+	RestoreSchedule(
+		ctx context.Context, monitorID string, monitorRevision int64,
+		agentConfigRevision int64, initialDue time.Time, interval time.Duration, now time.Time,
+	) (time.Time, error)
+	AdvanceSchedule(
+		ctx context.Context, monitorID string, monitorRevision int64,
+		agentConfigRevision int64, nextDue time.Time, missedRuns int64, now time.Time,
+	) error
+	RemoveSchedulesExcept(ctx context.Context, monitorIDs []string) error
+}
+
+type Option func(*Scheduler)
+
+func WithStateStore(state StateStore) Option {
+	return func(scheduler *Scheduler) { scheduler.state = state }
+}
+
+func New(registry *probe.Registry, maximumConcurrent int, options ...Option) (*Scheduler, error) {
 	if registry == nil || maximumConcurrent < 1 {
 		return nil, errors.New("registry and positive concurrency limit are required")
 	}
-	return &Scheduler{
+	scheduler := &Scheduler{
 		registry: registry,
 		workers:  make(chan struct{}, maximumConcurrent),
 		results:  make(chan Execution, maximumConcurrent),
 		jobs:     make(map[string]*job),
 		running:  make(map[string]bool),
-	}, nil
+	}
+	for _, option := range options {
+		option(scheduler)
+	}
+	return scheduler, nil
 }
 
-func (s *Scheduler) Reconcile(assignments []Assignment, now time.Time) error {
+func (s *Scheduler) Reconcile(
+	ctx context.Context, assignments []Assignment, now time.Time,
+) error {
 	validated := make(map[string]*job, len(assignments))
 	for _, assignment := range assignments {
 		if assignment.MonitorID == "" || assignment.MonitorRevision < 1 ||
@@ -104,20 +129,40 @@ func (s *Scheduler) Reconcile(assignments []Assignment, now time.Time) error {
 			nextDue:    now.Add(deterministicJitter(assignment.MonitorID, assignment.Interval)),
 		}
 	}
+	monitorIDs := make([]string, 0, len(validated))
+	if s.state != nil {
+		for monitorID, candidate := range validated {
+			restored, err := s.state.RestoreSchedule(
+				ctx, monitorID, candidate.assignment.MonitorRevision,
+				candidate.assignment.AgentConfigRevision, candidate.nextDue,
+				candidate.assignment.Interval, now,
+			)
+			if err != nil {
+				return fmt.Errorf("restore monitor %s schedule: %w", monitorID, err)
+			}
+			candidate.nextDue = restored
+			monitorIDs = append(monitorIDs, monitorID)
+		}
+		if err := s.state.RemoveSchedulesExcept(ctx, monitorIDs); err != nil {
+			return fmt.Errorf("remove obsolete schedules: %w", err)
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for monitorID, candidate := range validated {
-		if existing, ok := s.jobs[monitorID]; ok &&
-			existing.assignment.MonitorRevision == candidate.assignment.MonitorRevision &&
-			existing.assignment.AgentConfigRevision == candidate.assignment.AgentConfigRevision {
-			candidate.nextDue = existing.nextDue
+	if s.state == nil {
+		for monitorID, candidate := range validated {
+			if existing, ok := s.jobs[monitorID]; ok &&
+				existing.assignment.MonitorRevision == candidate.assignment.MonitorRevision &&
+				existing.assignment.AgentConfigRevision == candidate.assignment.AgentConfigRevision {
+				candidate.nextDue = existing.nextDue
+			}
 		}
 	}
 	s.jobs = validated
 	return nil
 }
 
-func (s *Scheduler) Tick(ctx context.Context, now time.Time) []MissedRun {
+func (s *Scheduler) Tick(ctx context.Context, now time.Time) ([]MissedRun, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var missed []MissedRun
@@ -126,32 +171,48 @@ func (s *Scheduler) Tick(ctx context.Context, now time.Time) []MissedRun {
 			continue
 		}
 		scheduledAt := current.nextDue
-		current.nextDue = scheduledAt.Add(current.assignment.Interval)
-		for !current.nextDue.After(now) {
+		nextDue := scheduledAt.Add(current.assignment.Interval)
+		var missedCount int64
+		for !nextDue.After(now) {
 			missed = append(missed, MissedRun{
 				MonitorID:   current.assignment.MonitorID,
-				ScheduledAt: current.nextDue,
+				ScheduledAt: nextDue,
 				Reason:      MissCapacity,
 			})
-			current.nextDue = current.nextDue.Add(current.assignment.Interval)
+			missedCount++
+			nextDue = nextDue.Add(current.assignment.Interval)
 		}
+		missReason := MissReason("")
 		if s.running[current.assignment.MonitorID] {
+			missReason = MissOverlap
+		} else if len(s.workers) == cap(s.workers) {
+			missReason = MissCapacity
+		}
+		if missReason != "" {
+			missedCount++
+		}
+		if s.state != nil {
+			if err := s.state.AdvanceSchedule(
+				ctx, current.assignment.MonitorID, current.assignment.MonitorRevision,
+				current.assignment.AgentConfigRevision, nextDue, missedCount, now,
+			); err != nil {
+				return missed, fmt.Errorf("advance monitor schedule: %w", err)
+			}
+		}
+		current.nextDue = nextDue
+		if missReason != "" {
 			missed = append(missed, MissedRun{
-				MonitorID: current.assignment.MonitorID, ScheduledAt: scheduledAt, Reason: MissOverlap,
+				MonitorID:   current.assignment.MonitorID,
+				ScheduledAt: scheduledAt,
+				Reason:      missReason,
 			})
 			continue
 		}
-		select {
-		case s.workers <- struct{}{}:
-			s.running[current.assignment.MonitorID] = true
-			s.start(ctx, current, scheduledAt)
-		default:
-			missed = append(missed, MissedRun{
-				MonitorID: current.assignment.MonitorID, ScheduledAt: scheduledAt, Reason: MissCapacity,
-			})
-		}
+		s.workers <- struct{}{}
+		s.running[current.assignment.MonitorID] = true
+		s.start(ctx, current, scheduledAt)
 	}
-	return missed
+	return missed, nil
 }
 
 func (s *Scheduler) start(parent context.Context, current *job, scheduledAt time.Time) {

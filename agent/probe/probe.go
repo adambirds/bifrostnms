@@ -93,11 +93,24 @@ func (r Result) Validate() error {
 	if r.ExecutionStatus == ExecutionFailed && r.Assessment != AssessmentUnknown {
 		return errors.New("failed probe execution must have unknown assessment")
 	}
+	if r.ExecutionStatus == ExecutionFailed && r.ProbeResult != nil {
+		return errors.New("failed probe execution cannot include a typed result")
+	}
+	if r.ExecutionStatus == ExecutionCompleted && r.ProbeResult == nil {
+		return errors.New("completed probe execution requires a typed result")
+	}
 	if len(r.ErrorMessage) > MaximumErrorMessageBytes {
 		return errors.New("probe error message exceeds the safe bound")
 	}
 	if r.ErrorCategory == nil && (r.ErrorCode != "" || r.ErrorMessage != "") {
 		return errors.New("probe error details require an error category")
+	}
+	if r.ErrorCategory != nil && !slices.Contains([]ErrorCategory{
+		ErrorTimeout, ErrorResolution, ErrorConnection, ErrorTLS, ErrorProtocol,
+		ErrorAssertion, ErrorPermission, ErrorInvalidConfiguration, ErrorResourceLimit,
+		ErrorInternal,
+	}, *r.ErrorCategory) {
+		return errors.New("probe error category is invalid")
 	}
 	return nil
 }
