@@ -100,6 +100,29 @@ class AgentEnrolmentToken(RealmOwnedModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
 
+class AgentOperationalState(RealmOwnedModel):
+    agent_id: uuid.UUID
+    agent: fields.OneToOneRelation[Agent] = fields.OneToOneField(
+        "models.Agent", related_name="operational_state", on_delete=fields.CASCADE
+    )
+    last_heartbeat_at = fields.DatetimeField(db_index=True)
+    agent_version = fields.CharField(max_length=120)
+    platform = fields.CharField(max_length=120)
+    architecture = fields.CharField(max_length=120)
+    hostname = fields.CharField(max_length=253)
+    capabilities = fields.JSONField[dict[str, Any]](default=dict)
+    active_configuration_revision = fields.BigIntField(default=0)
+    known_desired_configuration_revision = fields.BigIntField(default=0)
+    queue_depth = fields.BigIntField(default=0)
+    queue_bytes = fields.BigIntField(default=0)
+    oldest_pending_observation_at = fields.DatetimeField(null=True)
+    database_health = fields.CharField(max_length=16)
+    scheduler_state = fields.CharField(max_length=16)
+    agent_time = fields.DatetimeField()
+    clock_offset_ms = fields.BigIntField()
+    warnings = fields.JSONField[list[str]](default=list)
+
+
 class Target(RealmOwnedModel):
     name = fields.CharField(max_length=200)
     description = fields.TextField(null=True)

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -8,10 +9,12 @@ from bifrostnms.agents import issue_enrolment_token, revoke_credential, revoke_e
 from bifrostnms.auth.audit import AuditActorType, AuditOutcome, record_audit_event
 from bifrostnms.auth.permissions import require_realm_permission
 from bifrostnms.auth.roles import RealmPermission
+from bifrostnms.config import get_settings
 from bifrostnms.models import (
     Agent,
     AgentCredential,
     AgentGroup,
+    AgentOperationalState,
     Monitor,
     Target,
     TargetGroup,
@@ -30,7 +33,13 @@ from bifrostnms.monitoring import (
     unassign_monitor_from_agent_group,
 )
 from bifrostnms.monitoring.domain import MonitoringDomainError
-from bifrostnms.schemas.agent_protocol import AgentCredentialResponse, EnrolmentTokenResponse
+from bifrostnms.schemas.agent_protocol import (
+    AgentCredentialResponse,
+    AgentStatusResponse,
+    DatabaseHealth,
+    EnrolmentTokenResponse,
+    SchedulerState,
+)
 from bifrostnms.schemas.monitoring_api import (
     AgentCreate,
     AgentGroupCreate,
@@ -143,6 +152,57 @@ async def list_agent_credentials(agent_id: UUID, request: Request) -> list[Agent
     return [
         AgentCredentialResponse.model_validate(item, from_attributes=True) for item in credentials
     ]
+
+
+@router.get("/agents/{agent_id}/status", response_model=AgentStatusResponse)
+async def get_agent_status(agent_id: UUID, request: Request) -> AgentStatusResponse:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    agent = await Agent.filter(id=agent_id, realm=authorization.realm).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    state = await AgentOperationalState.filter(agent=agent, realm=authorization.realm).first()
+    if state is None:
+        return AgentStatusResponse(
+            agent_id=agent.id,
+            online=False,
+            last_heartbeat_at=None,
+            agent_version=None,
+            platform=None,
+            architecture=None,
+            hostname=None,
+            capabilities={},
+            active_configuration_revision=0,
+            known_desired_configuration_revision=0,
+            queue_depth=0,
+            queue_bytes=0,
+            oldest_pending_observation_at=None,
+            database_health=None,
+            scheduler_state=None,
+            clock_offset_ms=None,
+            warnings=[],
+        )
+    online_cutoff = datetime.now(UTC) - timedelta(
+        seconds=get_settings().agent_offline_after_seconds
+    )
+    return AgentStatusResponse(
+        agent_id=agent.id,
+        online=agent.enabled and state.last_heartbeat_at >= online_cutoff,
+        last_heartbeat_at=state.last_heartbeat_at,
+        agent_version=state.agent_version,
+        platform=state.platform,
+        architecture=state.architecture,
+        hostname=state.hostname,
+        capabilities=state.capabilities,
+        active_configuration_revision=state.active_configuration_revision,
+        known_desired_configuration_revision=(state.known_desired_configuration_revision),
+        queue_depth=state.queue_depth,
+        queue_bytes=state.queue_bytes,
+        oldest_pending_observation_at=state.oldest_pending_observation_at,
+        database_health=DatabaseHealth(state.database_health),
+        scheduler_state=SchedulerState(state.scheduler_state),
+        clock_offset_ms=state.clock_offset_ms,
+        warnings=state.warnings,
+    )
 
 
 @router.delete("/agents/{agent_id}/credentials/{credential_id}", status_code=204)

@@ -7,20 +7,28 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from fastapi import HTTPException, Request
+from fastapi import Request
 from tortoise import Tortoise
 
 from bifrostnms.agents import (
+    AgentProtocolError,
     EnrolmentError,
     authenticate_agent,
     exchange_enrolment_token,
     issue_enrolment_token,
+    require_supported_protocol,
     revoke_credential,
     revoke_enrolment_token,
 )
 from bifrostnms.auth.security import hash_token
 from bifrostnms.database import TORTOISE_ORM
-from bifrostnms.models import Agent, AgentCredential, AgentEnrolmentToken, Realm
+from bifrostnms.models import (
+    Agent,
+    AgentCredential,
+    AgentEnrolmentToken,
+    AgentOperationalState,
+    Realm,
+)
 
 
 def request(credential: str) -> Request:
@@ -44,6 +52,7 @@ async def enrolled_agent() -> AsyncIterator[tuple[Realm, Agent]]:
     finally:
         await AgentEnrolmentToken.filter(realm=realm).delete()
         await AgentCredential.filter(realm=realm).delete()
+        await AgentOperationalState.filter(realm=realm).delete()
         await agent.delete()
         await realm.delete()
         await Tortoise.close_connections()
@@ -134,9 +143,10 @@ async def test_agent_credential_authentication_and_revocation(
     assert credential.last_used_at is not None
 
     assert await revoke_credential(realm=realm, credential_id=credential.id)
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AgentProtocolError) as exc:
         await authenticate_agent(request(raw_credential))
     assert exc.value.status_code == 401
+    assert exc.value.code == "invalid_credential"
 
 
 @pytest.mark.asyncio
@@ -158,3 +168,15 @@ async def test_credential_cannot_cross_agent_or_realm_boundaries(
         await AgentCredential.filter(realm=other_realm).delete()
         await other_agent.delete()
         await other_realm.delete()
+
+
+def test_protocol_version_range_is_explicit() -> None:
+    require_supported_protocol(1)
+    with pytest.raises(AgentProtocolError) as exc:
+        require_supported_protocol(2)
+    assert exc.value.code == "incompatible_protocol"
+    assert exc.value.retryable is False
+    assert exc.value.details == {
+        "minimum_protocol_version": 1,
+        "maximum_protocol_version": 1,
+    }

@@ -1,10 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from tortoise.contrib.fastapi import RegisterTortoise
 
+from bifrostnms.agents import AgentProtocolError
 from bifrostnms.api.agent_protocol import router as agent_protocol_router
 from bifrostnms.api.auth import router as auth_router
 from bifrostnms.api.monitoring import router as monitoring_router
@@ -36,6 +38,23 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="BifrostNMS", version="0.1.0-dev", lifespan=lifespan)
+
+
+@app.exception_handler(AgentProtocolError)
+async def agent_protocol_error_handler(_: Request, exc: AgentProtocolError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "retryable": exc.retryable,
+                "details": exc.details,
+            }
+        },
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

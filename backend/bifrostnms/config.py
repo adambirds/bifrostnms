@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     agent_enrolment_ttl_minutes: int = 15
     agent_heartbeat_interval_seconds: int = 30
+    agent_offline_after_seconds: int = 90
     agent_configuration_poll_interval_seconds: int = 30
 
     # Development default only. Production deployments must provide a long random value.
