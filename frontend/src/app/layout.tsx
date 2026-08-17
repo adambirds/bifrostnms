@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth'
 
 import './dashboard.css'
 import './globals.css'
+import './performance.css'
 
 export const metadata: Metadata = {
   title: 'BifrostNMS',
