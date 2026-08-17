@@ -53,6 +53,8 @@ const top = 24
 const plotBottom = 270
 const lossTop = 326
 const lossHeight = 18
+const chartLocale = 'en-GB'
+const chartTimeZone = 'UTC'
 const seriesClasses = [
   'series-0',
   'series-1',
@@ -90,20 +92,25 @@ function formatPercent(value: number): string {
   return `${value.toFixed(value >= 10 ? 0 : 1)}%`
 }
 
+function formatDate(timestamp: number | string, options: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat(chartLocale, {
+    ...options,
+    hour12: false,
+    timeZone: chartTimeZone,
+  }).format(new Date(timestamp))
+}
+
 function formatTick(timestamp: number, durationMs: number): string[] {
-  const date = new Date(timestamp)
   if (durationMs <= 24 * 60 * 60 * 1000) {
-    return [
-      new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date),
-    ]
+    return [formatDate(timestamp, { hour: '2-digit', minute: '2-digit' })]
   }
   if (durationMs <= 7 * 24 * 60 * 60 * 1000) {
     return [
-      new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric' }).format(date),
-      new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date),
+      formatDate(timestamp, { weekday: 'short', day: 'numeric' }),
+      formatDate(timestamp, { hour: '2-digit', minute: '2-digit' }),
     ]
   }
-  return [new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date)]
+  return [formatDate(timestamp, { day: 'numeric', month: 'short' })]
 }
 
 function lossClass(value: number): string {
@@ -232,19 +239,20 @@ export function IcmpGraph({
           <div>
             <span className="eyebrow">Historical latency</span>
             <strong>
-              {new Intl.DateTimeFormat(undefined, {
+              {formatDate(startMs, {
                 day: 'numeric',
                 month: 'short',
                 hour: '2-digit',
                 minute: '2-digit',
-              }).format(new Date(startMs))}{' '}
+              })}{' '}
               –{' '}
-              {new Intl.DateTimeFormat(undefined, {
+              {formatDate(endMs, {
                 day: 'numeric',
                 month: 'short',
                 hour: '2-digit',
                 minute: '2-digit',
-              }).format(new Date(endMs))}
+              })}{' '}
+              UTC
             </strong>
           </div>
           <div className="modern-graph-legend">
@@ -415,14 +423,15 @@ export function IcmpGraph({
               }}
             >
               <strong>
-                {new Intl.DateTimeFormat(undefined, {
+                {formatDate(hovered.scheduled_at, {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit',
                   second: '2-digit',
-                }).format(new Date(hovered.scheduled_at))}
+                })}{' '}
+                UTC
               </strong>
               <span>{agentNames[hovered.agent_id] ?? hovered.agent_id}</span>
               <dl>
@@ -481,7 +490,7 @@ export function IcmpGraph({
         </article>
         <article className="metric-block">
           <span className="eyebrow">Samples</span>
-          <strong>{allSamples.length.toLocaleString()}</strong>
+          <strong>{allSamples.length.toLocaleString(chartLocale)}</strong>
           <span className="metric-caption">Total RTT samples</span>
           <div className="sample-breakdown">
             <b>{latest?.packets_sent ?? 0}</b> per probe · <b>{observations.length}</b> probes
@@ -542,7 +551,7 @@ export function IcmpGraph({
                   <td>{formatMs(summary.averageP95)}</td>
                   <td>{formatPercent(summary.averageLoss)}</td>
                   <td>{formatMs(summary.latestJitter)}</td>
-                  <td>{summary.samples.toLocaleString()}</td>
+                  <td>{summary.samples.toLocaleString(chartLocale)}</td>
                   <td>
                     <div className="availability-cell">
                       <span>{formatPercent(summary.availability)}</span>
