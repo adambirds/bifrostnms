@@ -6,11 +6,7 @@ import {
   type IcmpObservationMeta,
   type IcmpPoint,
 } from '@/app/icmp-graph'
-import {
-  formatDuration,
-  formatTimestamp,
-  statusClass,
-} from '@/lib/dashboard'
+import { formatDuration, formatTimestamp, statusClass } from '@/lib/dashboard'
 import { authenticatedApiFetch } from '@/lib/auth'
 import type {
   Agent,
@@ -33,11 +29,13 @@ const ranges = {
   '30d': { label: '30 days', milliseconds: 30 * 24 * 60 * 60 * 1000 },
 } as const
 
+const observationPageSize = 50
+
 type RangeKey = keyof typeof ranges
 
 type PageProps = {
   params: Promise<{ monitorId: string }>
-  searchParams: Promise<{ range?: string }>
+  searchParams: Promise<{ range?: string; observationsPage?: string }>
 }
 
 function isIcmpResult(result: ProbeHistoryPoint['result']): result is IcmpProbeResult {
@@ -96,47 +94,12 @@ function ProbeHistoryTable({
       <table className="resource-table observation-table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Agent</th>
-            <th>State</th>
-            {monitor.probe_type === 'icmp' ? (
-              <>
-                <th>Loss</th>
-                <th>Median</th>
-                <th>P95</th>
-                <th>Jitter</th>
-              </>
-            ) : null}
-            {monitor.probe_type === 'http' ? (
-              <>
-                <th>Status</th>
-                <th>Total</th>
-                <th>DNS / Connect / TLS / TTFB</th>
-                <th>Assertions</th>
-              </>
-            ) : null}
-            {monitor.probe_type === 'tcp' ? (
-              <>
-                <th>Address</th>
-                <th>Port</th>
-                <th>Connect</th>
-              </>
-            ) : null}
-            {monitor.probe_type === 'dns' ? (
-              <>
-                <th>Response</th>
-                <th>Duration</th>
-                <th>Answers</th>
-              </>
-            ) : null}
-            {monitor.probe_type === 'tls' ? (
-              <>
-                <th>Protocol</th>
-                <th>Handshake</th>
-                <th>Certificate</th>
-                <th>Expires</th>
-              </>
-            ) : null}
+            <th>Time</th><th>Agent</th><th>State</th>
+            {monitor.probe_type === 'icmp' ? <><th>Loss</th><th>Median</th><th>P95</th><th>Jitter</th></> : null}
+            {monitor.probe_type === 'http' ? <><th>Status</th><th>Total</th><th>DNS / Connect / TLS / TTFB</th><th>Assertions</th></> : null}
+            {monitor.probe_type === 'tcp' ? <><th>Address</th><th>Port</th><th>Connect</th></> : null}
+            {monitor.probe_type === 'dns' ? <><th>Response</th><th>Duration</th><th>Answers</th></> : null}
+            {monitor.probe_type === 'tls' ? <><th>Protocol</th><th>Handshake</th><th>Certificate</th><th>Expires</th></> : null}
             <th>Error</th>
           </tr>
         </thead>
@@ -149,100 +112,30 @@ function ProbeHistoryTable({
                 <td>{agentNames.get(point.agent_id) ?? point.agent_id}</td>
                 <td>
                   <span className={statusClass(point.assessment)}>{point.assessment}</span>
-                  {point.execution_status === 'failed' ? (
-                    <div className="muted">Execution failed</div>
-                  ) : null}
+                  {point.execution_status === 'failed' ? <div className="muted">Execution failed</div> : null}
                 </td>
-                {monitor.probe_type === 'icmp' ? (
-                  isIcmpResult(result) ? (
-                    <>
-                      <td>{result.packet_loss_percent.toFixed(1)}%</td>
-                      <td>{formatDuration(result.median_rtt_ms)}</td>
-                      <td>{formatDuration(result.p95_rtt_ms)}</td>
-                      <td>{formatDuration(result.jitter_ms)}</td>
-                    </>
-                  ) : (
-                    <td colSpan={4}>No typed result</td>
-                  )
-                ) : null}
-                {monitor.probe_type === 'http' ? (
-                  isHttpResult(result) ? (
-                    <>
-                      <td>{result.status_code ?? '—'}</td>
-                      <td>{formatDuration(result.total_ms)}</td>
-                      <td>
-                        {[
-                          result.dns_ms,
-                          result.connect_ms,
-                          result.tls_ms,
-                          result.ttfb_ms,
-                        ]
-                          .map(formatDuration)
-                          .join(' / ')}
-                      </td>
-                      <td>
-                        {result.assertions_failed}/{result.assertions_total} failed
-                      </td>
-                    </>
-                  ) : (
-                    <td colSpan={4}>No typed result</td>
-                  )
-                ) : null}
-                {monitor.probe_type === 'tcp' ? (
-                  isTcpResult(result) ? (
-                    <>
-                      <td>{result.address_used ?? '—'}</td>
-                      <td>{result.port}</td>
-                      <td>{formatDuration(result.connect_ms)}</td>
-                    </>
-                  ) : (
-                    <td colSpan={3}>No typed result</td>
-                  )
-                ) : null}
-                {monitor.probe_type === 'dns' ? (
-                  isDnsResult(result) ? (
-                    <>
-                      <td>
-                        {result.response_code ?? '—'} · {result.query_type}{' '}
-                        {result.query_name}
-                      </td>
-                      <td>{formatDuration(result.response_ms)}</td>
-                      <td>
-                        <code className="answer-preview">
-                          {result.answers.length
-                            ? JSON.stringify(result.answers)
-                            : 'No answers'}
-                        </code>
-                      </td>
-                    </>
-                  ) : (
-                    <td colSpan={3}>No typed result</td>
-                  )
-                ) : null}
-                {monitor.probe_type === 'tls' ? (
-                  isTlsResult(result) ? (
-                    <>
-                      <td>{result.protocol_version ?? '—'}</td>
-                      <td>{formatDuration(result.handshake_ms)}</td>
-                      <td>
-                        {result.certificate_present ? result.subject_name ?? 'Present' : 'Missing'}
-                      </td>
-                      <td>
-                        {result.not_after ? formatTimestamp(result.not_after) : '—'}
-                        {result.days_remaining !== null ? (
-                          <div className="muted">
-                            {result.days_remaining.toFixed(1)} days remaining
-                          </div>
-                        ) : null}
-                      </td>
-                    </>
-                  ) : (
-                    <td colSpan={4}>No typed result</td>
-                  )
-                ) : null}
-                <td>
-                  <ObservationError point={point} />
-                </td>
+                {monitor.probe_type === 'icmp' ? isIcmpResult(result) ? <>
+                  <td>{result.packet_loss_percent.toFixed(1)}%</td><td>{formatDuration(result.median_rtt_ms)}</td><td>{formatDuration(result.p95_rtt_ms)}</td><td>{formatDuration(result.jitter_ms)}</td>
+                </> : <td colSpan={4}>No typed result</td> : null}
+                {monitor.probe_type === 'http' ? isHttpResult(result) ? <>
+                  <td>{result.status_code ?? '—'}</td><td>{formatDuration(result.total_ms)}</td>
+                  <td>{[result.dns_ms, result.connect_ms, result.tls_ms, result.ttfb_ms].map(formatDuration).join(' / ')}</td>
+                  <td>{result.assertions_failed}/{result.assertions_total} failed</td>
+                </> : <td colSpan={4}>No typed result</td> : null}
+                {monitor.probe_type === 'tcp' ? isTcpResult(result) ? <>
+                  <td>{result.address_used ?? '—'}</td><td>{result.port}</td><td>{formatDuration(result.connect_ms)}</td>
+                </> : <td colSpan={3}>No typed result</td> : null}
+                {monitor.probe_type === 'dns' ? isDnsResult(result) ? <>
+                  <td>{result.response_code ?? '—'} · {result.query_type} {result.query_name}</td>
+                  <td>{formatDuration(result.response_ms)}</td>
+                  <td><code className="answer-preview">{result.answers.length ? JSON.stringify(result.answers) : 'No answers'}</code></td>
+                </> : <td colSpan={3}>No typed result</td> : null}
+                {monitor.probe_type === 'tls' ? isTlsResult(result) ? <>
+                  <td>{result.protocol_version ?? '—'}</td><td>{formatDuration(result.handshake_ms)}</td>
+                  <td>{result.certificate_present ? result.subject_name ?? 'Present' : 'Missing'}</td>
+                  <td>{result.not_after ? formatTimestamp(result.not_after) : '—'}{result.days_remaining !== null ? <div className="muted">{result.days_remaining.toFixed(1)} days remaining</div> : null}</td>
+                </> : <td colSpan={4}>No typed result</td> : null}
+                <td><ObservationError point={point} /></td>
               </tr>
             )
           })}
@@ -254,9 +147,11 @@ function ProbeHistoryTable({
 
 export default async function MonitorDetailPage({ params, searchParams }: PageProps) {
   const { monitorId } = await params
-  const requestedRange = (await searchParams).range
-  const rangeKey: RangeKey =
-    requestedRange && requestedRange in ranges ? (requestedRange as RangeKey) : '24h'
+  const resolvedSearchParams = await searchParams
+  const requestedRange = resolvedSearchParams.range
+  const rangeKey: RangeKey = requestedRange && requestedRange in ranges ? (requestedRange as RangeKey) : '24h'
+  const requestedPage = Number.parseInt(resolvedSearchParams.observationsPage ?? '1', 10)
+  const observationsPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
   const range = ranges[rangeKey]
   const end = new Date()
   const start = new Date(end.getTime() - range.milliseconds)
@@ -272,32 +167,29 @@ export default async function MonitorDetailPage({ params, searchParams }: PagePr
     authenticatedApiFetch<Target[]>('/monitoring/targets'),
     authenticatedApiFetch<Agent[]>('/monitoring/agents'),
     authenticatedApiFetch<MonitorStateSummary[]>('/monitoring/dashboard/current-state'),
-    authenticatedApiFetch<ProbeHistoryPoint[]>(
-      `/monitoring/dashboard/monitors/${monitorId}/history?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`,
-    ),
+    authenticatedApiFetch<ProbeHistoryPoint[]>(`/monitoring/dashboard/monitors/${monitorId}/history?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`),
   ])
+
   const target = targets.find((item) => item.id === monitor.target_id)
   const state = states.find((item) => item.monitor_id === monitor.id)
   const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
   const graphAgentNames = Object.fromEntries(agentNames)
   const icmpPoints: IcmpPoint[] = history.flatMap((point) => {
     if (!isIcmpResult(point.result)) return []
-    return [
-      {
-        scheduled_at: point.scheduled_at,
-        agent_id: point.agent_id,
-        packets_sent: point.result.packets_sent,
-        packets_received: point.result.packets_received,
-        packet_loss_percent: point.result.packet_loss_percent,
-        min_rtt_ms: point.result.min_rtt_ms,
-        avg_rtt_ms: point.result.avg_rtt_ms,
-        median_rtt_ms: point.result.median_rtt_ms,
-        max_rtt_ms: point.result.max_rtt_ms,
-        p95_rtt_ms: point.result.p95_rtt_ms,
-        jitter_ms: point.result.jitter_ms,
-        rtt_samples_ms: point.result.rtt_samples_ms,
-      },
-    ]
+    return [{
+      scheduled_at: point.scheduled_at,
+      agent_id: point.agent_id,
+      packets_sent: point.result.packets_sent,
+      packets_received: point.result.packets_received,
+      packet_loss_percent: point.result.packet_loss_percent,
+      min_rtt_ms: point.result.min_rtt_ms,
+      avg_rtt_ms: point.result.avg_rtt_ms,
+      median_rtt_ms: point.result.median_rtt_ms,
+      max_rtt_ms: point.result.max_rtt_ms,
+      p95_rtt_ms: point.result.p95_rtt_ms,
+      jitter_ms: point.result.jitter_ms,
+      rtt_samples_ms: point.result.rtt_samples_ms,
+    }]
   })
   const icmpObservations: IcmpObservationMeta[] = history.map((point) => ({
     scheduled_at: point.scheduled_at,
@@ -307,87 +199,56 @@ export default async function MonitorDetailPage({ params, searchParams }: PagePr
   }))
   const packetCount = icmpPoints.at(-1)?.packets_sent
 
+  const reversedHistory = [...history].reverse()
+  const totalObservationPages = Math.max(1, Math.ceil(reversedHistory.length / observationPageSize))
+  const currentObservationPage = Math.min(observationsPage, totalObservationPages)
+  const paginatedHistory = reversedHistory.slice(
+    (currentObservationPage - 1) * observationPageSize,
+    currentObservationPage * observationPageSize,
+  ).reverse()
+  const observationPageHref = (page: number) =>
+    `/monitors/${monitor.id}?range=${rangeKey}&observationsPage=${page}#raw-observations`
+
   return (
     <>
       <div className="monitor-detail-heading">
-        <nav className="monitor-breadcrumbs" aria-label="Breadcrumb">
-          <Link href="/monitors">Monitors</Link>
-          <span>›</span>
-          <span>{monitor.name}</span>
-        </nav>
+        <nav className="monitor-breadcrumbs" aria-label="Breadcrumb"><Link href="/monitors">Monitors</Link><span>›</span><span>{monitor.name}</span></nav>
         <div className="monitor-title-row">
           <div>
-            <div className="monitor-title-line">
-              <h1>{monitor.name}</h1>
-              <span className={state ? statusClass(state.headline) : 'status-muted'}>
-                {state?.headline ?? 'Unknown'}
-              </span>
-            </div>
+            <div className="monitor-title-line"><h1>{monitor.name}</h1><span className={state ? statusClass(state.headline) : 'status-muted'}>{state?.headline ?? 'Unknown'}</span></div>
             <div className="monitor-meta-line">
-              <span>{monitor.probe_type.toUpperCase()}</span>
-              <i />
-              <span>Every {monitor.interval_seconds} seconds</span>
-              <i />
-              <span>{monitor.timeout_seconds}s timeout</span>
-              {packetCount ? <><i /><span>{packetCount} packets</span></> : null}
-              <i />
-              <span>{target?.address ?? 'Unknown address'}</span>
+              <span>{monitor.probe_type.toUpperCase()}</span><i /><span>Every {monitor.interval_seconds} seconds</span><i /><span>{monitor.timeout_seconds}s timeout</span>
+              {packetCount ? <><i /><span>{packetCount} packets</span></> : null}<i /><span>{target?.address ?? 'Unknown address'}</span>
             </div>
           </div>
-          <div className="page-actions">
-            <Link className="secondary compact-action" href="/monitors">
-              Back to monitors
-            </Link>
-            <Link className="secondary compact-action" href={`/monitors/${monitor.id}/edit`}>
-              Edit monitor
-            </Link>
-          </div>
+          <div className="page-actions"><Link className="secondary compact-action" href="/monitors">Back to monitors</Link><Link className="secondary compact-action" href={`/monitors/${monitor.id}/edit`}>Edit monitor</Link></div>
         </div>
       </div>
 
       <section className="panel monitor-history-panel">
         <div className="panel-heading history-heading">
-          <div>
-            <span className="eyebrow">Historical measurements</span>
-            <h2>{range.label}</h2>
-          </div>
+          <div><span className="eyebrow">Historical measurements</span><h2>{range.label}</h2></div>
           <nav className="range-picker" aria-label="History range">
-            {(Object.keys(ranges) as RangeKey[]).map((key) => (
-              <Link
-                aria-current={key === rangeKey ? 'page' : undefined}
-                className={key === rangeKey ? 'active' : undefined}
-                href={`/monitors/${monitor.id}?range=${key}`}
-                key={key}
-              >
-                {key}
-              </Link>
-            ))}
+            {(Object.keys(ranges) as RangeKey[]).map((key) => <Link aria-current={key === rangeKey ? 'page' : undefined} className={key === rangeKey ? 'active' : undefined} href={`/monitors/${monitor.id}?range=${key}`} key={key}>{key}</Link>)}
           </nav>
         </div>
-        {monitor.probe_type === 'icmp' ? (
-          <IcmpGraph
-            agentNames={graphAgentNames}
-            intervalSeconds={monitor.interval_seconds}
-            observations={icmpObservations}
-            points={icmpPoints}
-            rangeEnd={end.toISOString()}
-            rangeStart={start.toISOString()}
-          />
-        ) : (
-          <ProbeHistoryTable agentNames={agentNames} history={history} monitor={monitor} />
-        )}
+        {monitor.probe_type === 'icmp' ? <IcmpGraph agentNames={graphAgentNames} intervalSeconds={monitor.interval_seconds} observations={icmpObservations} points={icmpPoints} rangeEnd={end.toISOString()} rangeStart={start.toISOString()} /> : <ProbeHistoryTable agentNames={agentNames} history={paginatedHistory} monitor={monitor} />}
       </section>
 
       {monitor.probe_type === 'icmp' ? (
-        <section className="panel raw-observations-panel">
+        <section className="panel raw-observations-panel" id="raw-observations">
           <div className="panel-heading">
-            <div>
-              <span className="eyebrow">Raw observations</span>
-              <h2>Recent probe executions</h2>
-            </div>
-            <span className="muted">{history.length} rows in this range</span>
+            <div><span className="eyebrow">Raw observations</span><h2>Recent probe executions</h2></div>
+            <span className="muted">{history.length} rows · page {currentObservationPage} of {totalObservationPages}</span>
           </div>
-          <ProbeHistoryTable agentNames={agentNames} history={history} monitor={monitor} />
+          <ProbeHistoryTable agentNames={agentNames} history={paginatedHistory} monitor={monitor} />
+          {totalObservationPages > 1 ? (
+            <nav className="observation-pagination" aria-label="Raw observation pages">
+              {currentObservationPage > 1 ? <Link className="secondary compact-action" href={observationPageHref(currentObservationPage - 1)}>Previous</Link> : <span />}
+              <span className="muted">Showing {(currentObservationPage - 1) * observationPageSize + 1}–{Math.min(currentObservationPage * observationPageSize, history.length)} of {history.length}</span>
+              {currentObservationPage < totalObservationPages ? <Link className="secondary compact-action" href={observationPageHref(currentObservationPage + 1)}>Next</Link> : <span />}
+            </nav>
+          ) : null}
         </section>
       ) : null}
     </>
