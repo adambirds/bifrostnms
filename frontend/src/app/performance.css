@@ -1,5 +1,7 @@
 .canvas-chart-shell {
   position: relative;
+  overflow: hidden;
+  user-select: none;
 }
 
 .icmp-smoke-canvas {
@@ -9,14 +11,66 @@
   aspect-ratio: 1200 / 390;
   border-radius: 10px;
   cursor: crosshair;
+  touch-action: none;
 }
 
 .canvas-tooltip {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  left: auto;
+  right: auto;
   pointer-events: none;
+  will-change: left, top;
+}
+
+.canvas-hover-line {
+  position: absolute;
+  z-index: 3;
+  top: 6.15%;
+  bottom: 30.75%;
+  width: 1px;
+  border-left: 1px dashed rgb(207 220 239 / 80%);
+  transform: translateX(-0.5px);
+  pointer-events: none;
+}
+
+.canvas-zoom-selection {
+  position: absolute;
+  z-index: 4;
+  top: 6.15%;
+  bottom: 12%;
+  border: 1px solid rgb(99 179 255 / 75%);
+  background: rgb(99 179 255 / 14%);
+  box-shadow: inset 0 0 0 1px rgb(99 179 255 / 10%);
+  pointer-events: none;
+}
+
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.graph-reset-zoom {
+  padding: 0.38rem 0.62rem;
+  border-color: #2a4168;
+  background: #0b1831;
+  color: #a9cfff;
+  font-size: 0.75rem;
+}
+
+.graph-reset-zoom:hover,
+.graph-reset-zoom:focus-visible {
+  border-color: #4ea7ff;
+  background: #142546;
+  color: #fff;
+}
+
+.graph-interaction-hint {
+  margin-top: 0.35rem;
+  color: #7186a8;
+  font-size: 0.72rem;
+  text-align: center;
 }
 
 .observation-pagination {
@@ -37,6 +91,13 @@
 
 .observation-pagination > :last-child {
   justify-self: end;
+}
+
+@media (width <= 900px) {
+  .chart-controls {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
 }
 
 @media (width <= 700px) {
