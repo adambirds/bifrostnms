@@ -81,6 +81,32 @@ async def test_bulk_create_applies_monitor_to_target_group(realm: Realm) -> None
 
 
 @pytest.mark.asyncio
+async def test_bulk_create_matches_normalized_probe_configuration(realm: Realm) -> None:
+    target = await Target.create(realm=realm, name="Router", address="router.example.com")
+    payload = BulkMonitorCreate(
+        target_ids=[target.id],
+        name_template="{target} - {probe}",
+        probe_type=ProbeType.ICMP,
+        interval_seconds=30,
+        timeout_seconds=5,
+        configuration={},
+    )
+
+    created, skipped = await create_monitors_bulk(realm=realm, payload=payload)
+    assert skipped == []
+    assert len(created) == 1
+    assert created[0].configuration["packet_count"] == 20
+
+    repeated, repeated_skipped = await create_monitors_bulk(
+        realm=realm,
+        payload=payload.model_copy(update={"name_template": "{target} alternate"}),
+    )
+    assert repeated == []
+    assert len(repeated_skipped) == 1
+    assert "equivalent monitor" in repeated_skipped[0].reason
+
+
+@pytest.mark.asyncio
 async def test_bulk_create_can_duplicate_and_skip_equivalent_monitor(realm: Realm) -> None:
     source_target = await Target.create(
         realm=realm,
