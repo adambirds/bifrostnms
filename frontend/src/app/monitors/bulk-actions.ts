@@ -4,10 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { ApiRequestError, authenticatedApiRequest } from '@/lib/auth'
 import { buildMonitorConfiguration, requiredNumber } from '@/lib/monitor-form'
-import type {
-  BulkMonitorCreateResponse,
-  ProbeType,
-} from '@/lib/monitoring'
+import type { BulkMonitorCreateResponse, ProbeType } from '@/lib/monitoring'
 
 export type BulkMonitorFormState = {
   error: string | null
