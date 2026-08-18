@@ -26,18 +26,25 @@ export function BulkMonitorForm({
   monitors,
   agents,
   agentGroups,
+  initialSourceMonitorId,
 }: {
   targets: Target[]
   targetGroups: TargetGroup[]
   monitors: Monitor[]
   agents: Agent[]
   agentGroups: AgentGroup[]
+  initialSourceMonitorId?: string
 }) {
   const [state, formAction, pending] = useActionState(
     createBulkMonitorsAction,
     initialState,
   )
-  const [definitionMode, setDefinitionMode] = useState<'new' | 'copy'>('new')
+  const hasInitialSource = monitors.some(
+    (monitor) => monitor.id === initialSourceMonitorId,
+  )
+  const [definitionMode, setDefinitionMode] = useState<'new' | 'copy'>(
+    hasInitialSource ? 'copy' : 'new',
+  )
   const [targetMode, setTargetMode] = useState<'group' | 'selected'>('group')
 
   return (
@@ -124,7 +131,11 @@ export function BulkMonitorForm({
         <div className="form-grid">
           <label>
             Source monitor
-            <select name="source_monitor_id" defaultValue="" required>
+            <select
+              name="source_monitor_id"
+              defaultValue={hasInitialSource ? initialSourceMonitorId : ''}
+              required
+            >
               <option value="" disabled>
                 Select monitor
               </option>
