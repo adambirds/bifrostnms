@@ -86,6 +86,17 @@ export type Monitor = {
   updated_at: string
 }
 
+export type BulkMonitorSkippedTarget = {
+  target_id: string
+  target_name: string
+  reason: string
+}
+
+export type BulkMonitorCreateResponse = {
+  created: Monitor[]
+  skipped: BulkMonitorSkippedTarget[]
+}
+
 export type MonitorAgentAssignment = {
   id: string
   realm_id: string
