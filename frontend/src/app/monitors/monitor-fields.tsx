@@ -382,9 +382,17 @@ function TlsFields({ monitor }: { monitor: Monitor | null }) {
 export function MonitorFields({
   targets,
   monitor = null,
+  includeTarget = true,
+  nameField = 'name',
+  nameLabel = 'Name',
+  defaultName,
 }: {
   targets: Target[]
   monitor?: Monitor | null
+  includeTarget?: boolean
+  nameField?: string
+  nameLabel?: string
+  defaultName?: string
 }) {
   const [probeType, setProbeType] = useState<ProbeType>(
     monitor?.probe_type ?? 'icmp',
@@ -397,27 +405,29 @@ export function MonitorFields({
     <>
       <div className="form-grid">
         <label>
-          Name
+          {nameLabel}
           <input
-            name="name"
+            name={nameField}
             required
             maxLength={200}
-            defaultValue={monitor?.name ?? ''}
+            defaultValue={defaultName ?? monitor?.name ?? ''}
           />
         </label>
-        <label>
-          Target
-          <select name="target_id" defaultValue={monitor?.target_id ?? ''} required>
-            <option value="" disabled>
-              Select target
-            </option>
-            {targets.map((target) => (
-              <option key={target.id} value={target.id}>
-                {target.name} — {target.address}
+        {includeTarget ? (
+          <label>
+            Target
+            <select name="target_id" defaultValue={monitor?.target_id ?? ''} required>
+              <option value="" disabled>
+                Select target
               </option>
-            ))}
-          </select>
-        </label>
+              {targets.map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.name} — {target.address}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
           Probe type
           <select
