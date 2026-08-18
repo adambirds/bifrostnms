@@ -149,11 +149,7 @@ export type AvailabilityState =
   | 'disabled'
 
 export type MonitorHeadline =
-  | 'healthy'
-  | 'degraded'
-  | 'unhealthy'
-  | 'unknown'
-  | 'disabled'
+  'healthy' | 'degraded' | 'unhealthy' | 'unknown' | 'disabled'
 
 export type ObservationSummary = {
   observation_id: string
