@@ -1,0 +1,272 @@
+.estate-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.estate-card strong {
+  margin: 0.35rem 0;
+  font-size: 2rem;
+}
+
+.dashboard-estate-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 1rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.estate-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.estate-stat + .estate-stat {
+  border-left: 1px solid #213253;
+}
+
+.estate-stat span {
+  color: #8fa3c4;
+}
+
+.estate-stat strong {
+  font-size: 1.35rem;
+}
+
+.attention-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.8rem;
+}
+
+.attention-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid #382d45;
+  border-radius: 12px;
+  background: #0b172d;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.attention-card:hover,
+.attention-card:focus-visible {
+  border-color: #f6b84e;
+  transform: translateY(-1px);
+}
+
+.attention-card > div:first-child {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.attention-card strong {
+  font-size: 1rem;
+}
+
+.attention-card code {
+  color: #8fa3c4;
+}
+
+.attention-monitor-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.attention-monitor-list span {
+  color: #b6c4d9;
+  font-size: 0.8rem;
+}
+
+.attention-monitor-list b {
+  margin-right: 0.35rem;
+  color: #78c9ff;
+}
+
+.target-monitor-chips {
+  display: flex;
+  max-width: 560px;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.monitor-chip {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #2a3c60;
+  border-radius: 7px;
+  background: #0b1831;
+  color: #aebdd3;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.monitor-chip b {
+  color: #78c9ff;
+}
+
+.monitor-chip-unhealthy {
+  border-color: #5f2d39;
+}
+
+.monitor-chip-degraded {
+  border-color: #65502a;
+}
+
+.target-description {
+  max-width: 760px;
+  margin: 0.8rem 0 0;
+  color: #8fa3c4;
+}
+
+.target-health-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.target-state-value {
+  text-transform: capitalize;
+}
+
+.target-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.8rem;
+}
+
+.target-monitor-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid #213253;
+  border-radius: 12px;
+  background: #08142b;
+}
+
+.target-monitor-card-heading,
+.target-monitor-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.target-monitor-card-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.target-monitor-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.probe-badge {
+  display: inline-flex;
+  padding: 0.22rem 0.4rem;
+  border-radius: 6px;
+  background: rgb(120 201 255 / 12%);
+  color: #78c9ff;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.target-monitor-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.target-monitor-metrics div {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: #0b1831;
+}
+
+.target-monitor-metrics dt {
+  color: #7186a8;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.target-monitor-metrics dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #213253;
+  border-radius: 999px;
+  background: #0b1831;
+  color: #c9d4e4;
+  font-size: 0.8rem;
+}
+
+.agent-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #59d36f;
+}
+
+.compact-empty-state {
+  padding: 1rem;
+}
+
+@media (width <= 1000px) {
+  .estate-summary-cards,
+  .target-health-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 700px) {
+  .estate-summary-cards,
+  .target-health-cards,
+  .dashboard-estate-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .estate-stat + .estate-stat {
+    border-top: 1px solid #213253;
+    border-left: 0;
+  }
+
+  .target-monitor-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .target-monitor-card-heading,
+  .target-monitor-card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

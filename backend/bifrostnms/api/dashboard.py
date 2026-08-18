@@ -8,13 +8,20 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 from bifrostnms.auth.permissions import require_realm_permission
 from bifrostnms.auth.roles import RealmPermission
 from bifrostnms.config import get_settings
-from bifrostnms.models import Monitor
+from bifrostnms.models import Monitor, Target
 from bifrostnms.monitoring.dashboard import (
     query_monitor_states,
     query_probe_history,
     query_recent_observations,
 )
-from bifrostnms.schemas.dashboard import MonitorStateSummary, ObservationSummary, ProbeHistoryPoint
+from bifrostnms.monitoring.target_dashboard import query_dashboard_overview, query_target_summaries
+from bifrostnms.schemas.dashboard import (
+    DashboardOverview,
+    MonitorStateSummary,
+    ObservationSummary,
+    ProbeHistoryPoint,
+    TargetOperationalSummary,
+)
 
 router = APIRouter(prefix="/monitoring/dashboard", tags=["monitoring-dashboard"])
 
@@ -33,6 +40,44 @@ def _history_range(*, start: datetime | None, end: datetime | None) -> tuple[dat
             detail="History range must be positive and no longer than 30 days",
         )
     return resolved_start, resolved_end
+
+
+@router.get("/overview", response_model=DashboardOverview)
+async def overview(request: Request) -> DashboardOverview:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    return await query_dashboard_overview(
+        realm_id=authorization.realm.id,
+        settings=get_settings(),
+    )
+
+
+@router.get("/targets", response_model=list[TargetOperationalSummary])
+async def target_summaries(request: Request) -> list[TargetOperationalSummary]:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    return await query_target_summaries(
+        realm_id=authorization.realm.id,
+        settings=get_settings(),
+    )
+
+
+@router.get("/targets/{target_id}", response_model=TargetOperationalSummary)
+async def target_summary(target_id: UUID, request: Request) -> TargetOperationalSummary:
+    authorization = await require_realm_permission(request, RealmPermission.MONITORING_READ)
+    target = await Target.filter(
+        id=target_id,
+        realm=authorization.realm,
+        archived_at=None,
+    ).first()
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
+    summaries = await query_target_summaries(
+        realm_id=authorization.realm.id,
+        settings=get_settings(),
+    )
+    for summary in summaries:
+        if summary.target_id == target_id:
+            return summary
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
 
 
 @router.get("/current-state", response_model=list[MonitorStateSummary])

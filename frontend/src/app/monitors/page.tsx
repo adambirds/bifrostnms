@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { AssignmentForm } from '@/app/monitors/assignment-form'
+import { BulkMonitorForm } from '@/app/monitors/bulk-monitor-form'
 import { MonitorForm } from '@/app/monitors/monitor-form'
 import { authenticatedApiFetch } from '@/lib/auth'
 import type {
@@ -10,14 +11,21 @@ import type {
   MonitorAgentAssignment,
   MonitorAgentGroupAssignment,
   Target,
+  TargetGroup,
 } from '@/lib/monitoring'
 
 import './monitors.css'
 
-export default async function MonitorsPage() {
+type MonitorsPageProps = {
+  searchParams: Promise<{ duplicate?: string }>
+}
+
+export default async function MonitorsPage({ searchParams }: MonitorsPageProps) {
+  const { duplicate } = await searchParams
   const [
     monitors,
     targets,
+    targetGroups,
     agents,
     agentGroups,
     directAssignments,
@@ -25,6 +33,7 @@ export default async function MonitorsPage() {
   ] = await Promise.all([
     authenticatedApiFetch<Monitor[]>('/monitoring/monitors'),
     authenticatedApiFetch<Target[]>('/monitoring/targets'),
+    authenticatedApiFetch<TargetGroup[]>('/monitoring/target-groups'),
     authenticatedApiFetch<Agent[]>('/monitoring/agents'),
     authenticatedApiFetch<AgentGroup[]>('/monitoring/agent-groups'),
     authenticatedApiFetch<MonitorAgentAssignment[]>(
@@ -51,13 +60,35 @@ export default async function MonitorsPage() {
         </div>
       </div>
 
+      <section className="panel" id="bulk-create">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">Configure once, apply broadly</span>
+            <h2>Bulk create or duplicate monitors</h2>
+            <p className="muted">
+              Apply a shared probe definition to a target group or selected targets.
+              BifrostNMS still creates explicit per-target monitors so history and
+              revisions remain independently traceable.
+            </p>
+          </div>
+        </div>
+        <BulkMonitorForm
+          targets={targets}
+          targetGroups={targetGroups}
+          monitors={monitors}
+          agents={agents}
+          agentGroups={agentGroups}
+          initialSourceMonitorId={duplicate}
+        />
+      </section>
+
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>Create monitor</h2>
+            <h2>Create one monitor</h2>
             <p className="muted">
-              Probe configuration is validated by the same typed control-plane
-              contracts distributed to agents.
+              Use this for target-specific checks such as web paths, assertions or
+              ports that are not shared across the estate.
             </p>
           </div>
         </div>
@@ -198,6 +229,12 @@ export default async function MonitorsPage() {
                             href={`/monitors/${monitor.id}/edit`}
                           >
                             Edit
+                          </Link>
+                          <Link
+                            className="secondary compact-action"
+                            href={`/monitors?duplicate=${monitor.id}#bulk-create`}
+                          >
+                            Duplicate
                           </Link>
                         </div>
                       </td>

@@ -28,6 +28,43 @@
   margin: 0;
 }
 
+.bulk-monitor-form {
+  gap: 1.25rem;
+}
+
+.bulk-monitor-options,
+.bulk-monitor-assignments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.bulk-monitor-options fieldset,
+.bulk-monitor-assignments > div {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #213253;
+  border-radius: 12px;
+  background: #08142b;
+}
+
+.bulk-monitor-options legend {
+  padding: 0 0.35rem;
+  font-weight: 700;
+}
+
+.bulk-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.bulk-monitor-form select[multiple] {
+  min-height: 10rem;
+}
+
 .assignment-form {
   display: grid;
   min-width: 200px;
@@ -81,4 +118,12 @@
   border-color: #5f2d39;
   background: #3d1d27;
   font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+  .bulk-monitor-options,
+  .bulk-monitor-assignments,
+  .bulk-checkbox-grid {
+    grid-template-columns: 1fr;
+  }
 }
