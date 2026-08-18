@@ -70,10 +70,13 @@ async def test_bulk_create_applies_monitor_to_target_group(realm: Realm) -> None
     assert skipped == []
     assert [monitor.name for monitor in created] == ["First - ICMP", "Second - ICMP"]
     assert {monitor.target_id for monitor in created} == {first.id, second.id}
-    assert await MonitorAgentGroupAssignment.filter(
-        realm=realm,
-        agent_group=agent_group,
-    ).count() == 2
+    assert (
+        await MonitorAgentGroupAssignment.filter(
+            realm=realm,
+            agent_group=agent_group,
+        ).count()
+        == 2
+    )
     assert await AgentConfigurationState.filter(realm=realm, agent=agent).count() == 0
 
 
