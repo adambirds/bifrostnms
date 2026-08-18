@@ -14,10 +14,7 @@ from bifrostnms.monitoring.dashboard import (
     query_probe_history,
     query_recent_observations,
 )
-from bifrostnms.monitoring.target_dashboard import (
-    query_dashboard_overview,
-    query_target_summaries,
-)
+from bifrostnms.monitoring.target_dashboard import query_dashboard_overview, query_target_summaries
 from bifrostnms.schemas.dashboard import (
     DashboardOverview,
     MonitorStateSummary,
