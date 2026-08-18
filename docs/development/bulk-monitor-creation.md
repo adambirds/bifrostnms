@@ -35,6 +35,9 @@ Choose **Duplicate an existing monitor** and select a source monitor. BifrostNMS
 copies its probe type, schedule, timeout, description and normalized probe
 configuration to each selected target.
 
+Each configured monitor row also has a **Duplicate** action. It opens the bulk
+form in duplicate mode with that monitor already selected as the source.
+
 The new monitors get their own UUIDs and revision/history lifecycle; they are not
 linked aliases of the source monitor.
 
