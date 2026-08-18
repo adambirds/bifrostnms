@@ -16,7 +16,12 @@ import type {
 
 import './monitors.css'
 
-export default async function MonitorsPage() {
+type MonitorsPageProps = {
+  searchParams: Promise<{ duplicate?: string }>
+}
+
+export default async function MonitorsPage({ searchParams }: MonitorsPageProps) {
+  const { duplicate } = await searchParams
   const [
     monitors,
     targets,
@@ -73,6 +78,7 @@ export default async function MonitorsPage() {
           monitors={monitors}
           agents={agents}
           agentGroups={agentGroups}
+          initialSourceMonitorId={duplicate}
         />
       </section>
 
@@ -226,7 +232,7 @@ export default async function MonitorsPage() {
                           </Link>
                           <Link
                             className="secondary compact-action"
-                            href="/monitors#bulk-create"
+                            href={`/monitors?duplicate=${monitor.id}#bulk-create`}
                           >
                             Duplicate
                           </Link>
