@@ -23,6 +23,7 @@ from bifrostnms.monitoring.domain import (
     assign_monitor_to_agent_group,
     create_monitor,
 )
+from bifrostnms.schemas import serialize_probe_configuration
 from bifrostnms.schemas.monitoring_api import BulkMonitorCreate
 
 
@@ -154,6 +155,12 @@ async def create_monitors_bulk(
     ):
         raise MonitoringDomainError("Bulk monitor definition is incomplete")
 
+    normalized_configuration = serialize_probe_configuration(
+        probe_type,
+        configuration,
+        timeout_seconds=timeout_seconds,
+    )
+
     created: list[Monitor] = []
     skipped: list[SkippedMonitorTarget] = []
     for target in targets:
@@ -175,7 +182,7 @@ async def create_monitors_bulk(
                 probe_type=probe_type,
                 interval_seconds=interval_seconds,
                 timeout_seconds=timeout_seconds,
-                configuration=configuration,
+                configuration=normalized_configuration,
                 archived_at=None,
             ).exists()
         ):
@@ -206,7 +213,7 @@ async def create_monitors_bulk(
                 probe_type=probe_type,
                 interval_seconds=interval_seconds,
                 timeout_seconds=timeout_seconds,
-                configuration=configuration,
+                configuration=normalized_configuration,
             )
         except IntegrityError:
             skipped.append(
