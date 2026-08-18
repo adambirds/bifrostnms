@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -53,7 +54,9 @@ def _render_monitor_name(
     if not rendered:
         raise MonitoringDomainError("Monitor name template produced an empty name")
     if len(rendered) > 200:
-        raise MonitoringDomainError("Monitor name template produced a name longer than 200 characters")
+        raise MonitoringDomainError(
+            "Monitor name template produced a name longer than 200 characters"
+        )
     return rendered
 
 
@@ -67,10 +70,13 @@ async def _resolve_targets(*, realm: Realm, payload: BulkMonitorCreate) -> list[
         ).first()
         if group is None:
             raise ResourceStateError("Target group not found")
-        group_target_ids = await TargetGroupMembership.filter(
-            realm=realm,
-            target_group=group,
-        ).values_list("target_id", flat=True)
+        group_target_ids = cast(
+            list[UUID],
+            await TargetGroupMembership.filter(
+                realm=realm,
+                target_group=group,
+            ).values_list("target_id", flat=True),
+        )
         target_ids.update(group_target_ids)
 
     targets = await Target.filter(
@@ -136,7 +142,9 @@ async def create_monitors_bulk(
     description = (
         payload.description
         if payload.description is not None
-        else source_monitor.description if source_monitor is not None else None
+        else source_monitor.description
+        if source_monitor is not None
+        else None
     )
     if (
         probe_type is None
@@ -150,9 +158,7 @@ async def create_monitors_bulk(
     skipped: list[SkippedMonitorTarget] = []
     for target in targets:
         if not target.enabled:
-            skipped.append(
-                SkippedMonitorTarget(target.id, target.name, "Target is disabled")
-            )
+            skipped.append(SkippedMonitorTarget(target.id, target.name, "Target is disabled"))
             continue
 
         name = _render_monitor_name(
@@ -161,15 +167,18 @@ async def create_monitors_bulk(
             probe_type=probe_type,
             source_monitor=source_monitor,
         )
-        if payload.skip_existing and await Monitor.filter(
-            realm=realm,
-            target=target,
-            probe_type=probe_type,
-            interval_seconds=interval_seconds,
-            timeout_seconds=timeout_seconds,
-            configuration=configuration,
-            archived_at=None,
-        ).exists():
+        if (
+            payload.skip_existing
+            and await Monitor.filter(
+                realm=realm,
+                target=target,
+                probe_type=probe_type,
+                interval_seconds=interval_seconds,
+                timeout_seconds=timeout_seconds,
+                configuration=configuration,
+                archived_at=None,
+            ).exists()
+        ):
             skipped.append(
                 SkippedMonitorTarget(
                     target.id,
