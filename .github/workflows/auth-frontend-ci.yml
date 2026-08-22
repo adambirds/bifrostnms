@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload bundle analysis to Codecov
         if: ${{ github.event_name == 'push' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           plugin: bundler
