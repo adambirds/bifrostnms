@@ -83,7 +83,7 @@ jobs:
         env:
           TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trivy-fs-scan-agent
           path: trivy-fs-scan.txt
@@ -126,7 +126,7 @@ jobs:
           mkdir -p ../dist
           go build -trimpath -ldflags="-s -w" -o "../dist/bifrost-agent-${GOOS}-${GOARCH}${suffix}" ./cmd/bifrost-agent
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bifrost-agent-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/bifrost-agent-*
@@ -158,7 +158,7 @@ jobs:
         env:
           TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trivy-image-scan-agent
           path: trivy-image-scan.txt
