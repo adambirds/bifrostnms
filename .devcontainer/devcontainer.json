@@ -41,6 +41,7 @@
         "redhat.vscode-xml",
         "jock.svg",
         "unifiedjs.vscode-mdx",
+        "anthropic.claude-code",
         "openai.chatgpt"
       ],
       "settings": {
