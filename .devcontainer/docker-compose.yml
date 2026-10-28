@@ -39,4 +39,8 @@ services:
       retries: 10
 
 volumes:
+  # Shared by every devcontainer; the fixed name stops compose
+  # prefixing it with the project name.
+  vscode-server-extensions:
+    name: vscode-server-extensions
   postgres-data:
