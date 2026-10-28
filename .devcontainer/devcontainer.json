@@ -78,6 +78,8 @@
     "source=vscode-server-extensions,target=/root/.vscode-server/extensions,type=volume",
     "source=bifrostnms-bash-history,target=/root/.history,type=volume",
     "source=${localEnv:HOME}/.codex,target=${localEnv:HOME}/.codex,type=bind,consistency=cached",
+    // Codex's IPC socket stays per container; the host app has its own there.
+    "source=codex-ipc,target=${localEnv:HOME}/.codex/ipc,type=volume",
     "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached",
     "source=bifrostnms-github-cli-config,target=/root/.config/gh,type=volume",
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
