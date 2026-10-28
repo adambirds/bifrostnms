@@ -2,7 +2,7 @@
   "name": "BifrostNMS Dev Container",
   "dockerComposeFile": ["docker-compose.yml"],
   "service": "app",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "${localWorkspaceFolder}",
   "shutdownAction": "stopCompose",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
@@ -73,16 +73,18 @@
     "PATH": "/opt/venv/bin:${containerEnv:PATH}"
   },
   "mounts": [
+    "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=cached",
+    "source=vscode-server-extensions,target=/root/.vscode-server/extensions,type=volume",
     "source=bifrostnms-bash-history,target=/root/.history,type=volume",
-    "source=bifrostnms-codex-config,target=/root/.codex,type=volume",
-    "source=bifrostnms-claude-config,target=/root/.claude,type=volume",
+    "source=${localEnv:HOME}/.codex,target=${localEnv:HOME}/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached",
     "source=bifrostnms-github-cli-config,target=/root/.config/gh,type=volume",
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "source=${localEnv:HOME},target=/host-home,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached,readonly"
   ],
   "containerEnv": {
-    "CLAUDE_CONFIG_DIR": "/root/.claude",
-    "CODEX_HOME": "/root/.codex"
+    "CLAUDE_CONFIG_DIR": "${localEnv:HOME}/.claude",
+    "CODEX_HOME": "${localEnv:HOME}/.codex"
   }
 }
