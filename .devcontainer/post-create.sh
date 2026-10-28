@@ -44,6 +44,8 @@ echo "Downloading Go modules..."
 (cd agent && go mod download)
 
 git config --global --add safe.directory /workspace
+bash .devcontainer/scripts/install-claude
+bash .devcontainer/scripts/install-codex
 
 ###############################################################################
 # Bash prompt: keep /opt/venv active and visible in every interactive shell.
