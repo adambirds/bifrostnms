@@ -42,7 +42,8 @@
         "jock.svg",
         "unifiedjs.vscode-mdx",
         "anthropic.claude-code",
-        "openai.chatgpt"
+        // Pinned: 26.1021.22027's webview fails to start (openai/codex#56655).
+        "openai.chatgpt@26.1007.21434"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/opt/venv/bin/python",
@@ -80,6 +81,8 @@
     "source=${localEnv:HOME}/.codex,target=${localEnv:HOME}/.codex,type=bind,consistency=cached",
     // Codex's IPC socket stays per container; the host app has its own there.
     "source=codex-ipc,target=${localEnv:HOME}/.codex/ipc,type=volume",
+    // Codex's SQLite state can't be shared with the host over file sharing.
+    "source=codex-sqlite,target=/root/.codex-sqlite,type=volume",
     "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached",
     "source=bifrostnms-github-cli-config,target=/root/.config/gh,type=volume",
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
@@ -88,6 +91,7 @@
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "${localEnv:HOME}/.claude",
-    "CODEX_HOME": "${localEnv:HOME}/.codex"
+    "CODEX_HOME": "${localEnv:HOME}/.codex",
+    "CODEX_SQLITE_HOME": "/root/.codex-sqlite"
   }
 }
