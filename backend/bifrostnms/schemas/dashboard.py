@@ -141,3 +141,50 @@ ProbeResult = IcmpProbeResult | HttpProbeResult | TcpProbeResult | DnsProbeResul
 
 class ProbeHistoryPoint(ObservationSummary):
     result: ProbeResult | None
+
+
+class TargetMonitorSummary(BaseModel):
+    monitor_id: UUID
+    monitor_name: str
+    probe_type: ProbeType
+    headline: MonitorHeadline
+    enabled: bool
+    effective_agents: int
+    healthy_agents: int
+    unhealthy_agents: int
+    unavailable_agents: int
+    coverage_percent: float = Field(ge=0, le=100)
+    latest_scheduled_at: datetime | None = None
+    latest_agent_id: UUID | None = None
+    latest_agent_name: str | None = None
+    latest_assessment: Assessment | None = None
+    latest_execution_status: ExecutionStatus | None = None
+    latest_error_code: str | None = None
+    latest_result: ProbeResult | None = None
+
+
+class TargetOperationalSummary(BaseModel):
+    target_id: UUID
+    target_name: str
+    address: str
+    description: str | None = None
+    enabled: bool
+    headline: MonitorHeadline
+    monitor_count: int
+    healthy_monitors: int
+    degraded_monitors: int
+    unhealthy_monitors: int
+    unknown_monitors: int
+    agent_count: int
+    monitors: list[TargetMonitorSummary]
+
+
+class DashboardOverview(BaseModel):
+    target_count: int
+    monitor_count: int
+    agent_count: int
+    healthy_targets: int
+    degraded_targets: int
+    unhealthy_targets: int
+    unknown_targets: int
+    targets: list[TargetOperationalSummary]

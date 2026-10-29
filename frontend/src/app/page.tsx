@@ -1,261 +1,227 @@
 import Link from 'next/link'
 
-import {
-  IcmpGraph,
-  type IcmpObservationMeta,
-  type IcmpPoint,
-} from '@/app/icmp-graph'
-import {
-  formatTimestamp,
-  headlineLabel,
-  statusClass,
-} from '@/lib/dashboard'
+import { formatTimestamp, headlineLabel, statusClass } from '@/lib/dashboard'
 import { authenticatedApiFetch } from '@/lib/auth'
 import type {
-  Agent,
+  DashboardOverview,
+  DnsProbeResult,
+  HttpProbeResult,
   IcmpProbeResult,
-  Monitor,
-  MonitorStateSummary,
   ObservationSummary,
-  ProbeHistoryPoint,
-  Target,
+  TargetMonitorSummary,
+  TcpProbeResult,
+  TlsProbeResult,
 } from '@/lib/monitoring'
 
-function isIcmpResult(result: ProbeHistoryPoint['result']): result is IcmpProbeResult {
-  return result !== null && 'packets_sent' in result
+function monitorMetric(monitor: TargetMonitorSummary): string {
+  const result = monitor.latest_result
+  if (!result) return monitor.latest_error_code ?? 'No measurement yet'
+  if (monitor.probe_type === 'icmp' && 'packets_sent' in result) {
+    const icmp = result as IcmpProbeResult
+    return `${icmp.median_rtt_ms?.toFixed(1) ?? '—'} ms · ${icmp.packet_loss_percent.toFixed(1)}% loss`
+  }
+  if (monitor.probe_type === 'http' && 'status_code' in result) {
+    const http = result as HttpProbeResult
+    return `${http.status_code ?? '—'} · ${http.total_ms?.toFixed(1) ?? '—'} ms`
+  }
+  if (monitor.probe_type === 'tcp' && 'connect_ms' in result && 'port' in result) {
+    const tcp = result as TcpProbeResult
+    return `:${tcp.port} · ${tcp.connect_ms?.toFixed(1) ?? '—'} ms`
+  }
+  if (monitor.probe_type === 'dns' && 'query_name' in result) {
+    const dns = result as DnsProbeResult
+    return `${dns.response_code ?? '—'} · ${dns.response_ms?.toFixed(1) ?? '—'} ms`
+  }
+  const tls = result as TlsProbeResult
+  return `${tls.protocol_version ?? 'TLS'} · ${tls.days_remaining?.toFixed(0) ?? '—'} days`
 }
 
 export default async function DashboardPage() {
-  const [agents, targets, monitors, states, recent] = await Promise.all([
-    authenticatedApiFetch<Agent[]>('/monitoring/agents'),
-    authenticatedApiFetch<Target[]>('/monitoring/targets'),
-    authenticatedApiFetch<Monitor[]>('/monitoring/monitors'),
-    authenticatedApiFetch<MonitorStateSummary[]>('/monitoring/dashboard/current-state'),
+  const [overview, recent] = await Promise.all([
+    authenticatedApiFetch<DashboardOverview>('/monitoring/dashboard/overview'),
     authenticatedApiFetch<ObservationSummary[]>(
-      '/monitoring/dashboard/recent-observations?limit=20',
+      '/monitoring/dashboard/recent-observations?limit=12',
     ),
   ])
-  const monitorNames = new Map(monitors.map((monitor) => [monitor.id, monitor.name]))
-  const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
-  const healthy = states.filter((state) => state.headline === 'healthy').length
-  const attention = states.filter(
-    (state) => state.headline === 'degraded' || state.headline === 'unhealthy',
-  ).length
-  const unknown = states.filter(
-    (state) => state.headline === 'unknown' || state.headline === 'disabled',
-  ).length
-  const icmpMonitor = monitors.find((monitor) => monitor.probe_type === 'icmp')
-  const historyEnd = new Date()
-  const historyStart = new Date(historyEnd.getTime() - 24 * 60 * 60 * 1000)
-  const history = icmpMonitor
-    ? await authenticatedApiFetch<ProbeHistoryPoint[]>(
-        `/monitoring/dashboard/monitors/${icmpMonitor.id}/history?start=${encodeURIComponent(historyStart.toISOString())}&end=${encodeURIComponent(historyEnd.toISOString())}`,
-      )
-    : []
-  const points: IcmpPoint[] = history.flatMap((point) => {
-    if (!isIcmpResult(point.result)) return []
-    return [
-      {
-        scheduled_at: point.scheduled_at,
-        agent_id: point.agent_id,
-        packets_sent: point.result.packets_sent,
-        packets_received: point.result.packets_received,
-        packet_loss_percent: point.result.packet_loss_percent,
-        min_rtt_ms: point.result.min_rtt_ms,
-        avg_rtt_ms: point.result.avg_rtt_ms,
-        median_rtt_ms: point.result.median_rtt_ms,
-        max_rtt_ms: point.result.max_rtt_ms,
-        p95_rtt_ms: point.result.p95_rtt_ms,
-        jitter_ms: point.result.jitter_ms,
-        rtt_samples_ms: point.result.rtt_samples_ms,
-      },
-    ]
-  })
-  const icmpObservations: IcmpObservationMeta[] = history.map((point) => ({
-    scheduled_at: point.scheduled_at,
-    agent_id: point.agent_id,
-    execution_status: point.execution_status,
-    assessment: point.assessment,
-  }))
+  const monitorNames = new Map(
+    overview.targets.flatMap((target) =>
+      target.monitors.map((monitor) => [monitor.monitor_id, monitor.monitor_name] as const),
+    ),
+  )
+  const targetByMonitor = new Map(
+    overview.targets.flatMap((target) =>
+      target.monitors.map((monitor) => [monitor.monitor_id, target] as const),
+    ),
+  )
+  const attentionTargets = overview.targets.filter(
+    (target) => target.headline === 'degraded' || target.headline === 'unhealthy',
+  )
 
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading dashboard-heading">
         <div>
-          <span className="eyebrow">Network overview</span>
-          <h1>Overview</h1>
-          <p>
-            Current distributed health, monitoring coverage and recently received
-            observations.
-          </p>
+          <span className="eyebrow">Operations</span>
+          <h1>Network overview</h1>
+          <p>Start with what needs attention, then drill into a target or individual monitor.</p>
         </div>
       </div>
-      <div className="cards overview-cards">
-        <section className="card">
-          <span className="muted">Healthy monitors</span>
-          <strong>{healthy}</strong>
-          <span className="status-ok">Distributed agreement</span>
+
+      <div className="cards estate-summary-cards">
+        <section className="card estate-card estate-card-healthy">
+          <span className="muted">Healthy targets</span>
+          <strong>{overview.healthy_targets}</strong>
+          <span className="status-ok">Operating normally</span>
         </section>
-        <section className="card">
-          <span className="muted">Needs attention</span>
-          <strong>{attention}</strong>
-          <span className={attention ? 'status-warning' : 'status-muted'}>
-            Degraded or unhealthy
+        <section className="card estate-card estate-card-warning">
+          <span className="muted">Degraded</span>
+          <strong>{overview.degraded_targets}</strong>
+          <span className={overview.degraded_targets ? 'status-warning' : 'status-muted'}>
+            Partial or mixed health
           </span>
         </section>
-        <section className="card">
+        <section className="card estate-card estate-card-danger">
+          <span className="muted">Unhealthy</span>
+          <strong>{overview.unhealthy_targets}</strong>
+          <span className={overview.unhealthy_targets ? 'status-danger' : 'status-muted'}>
+            Requires attention
+          </span>
+        </section>
+        <section className="card estate-card">
           <span className="muted">Unknown / inactive</span>
-          <strong>{unknown}</strong>
-          <span className="status-muted">Missing, pending or unassigned</span>
-        </section>
-        <section className="card">
-          <span className="muted">Monitoring estate</span>
-          <strong>{agents.length}</strong>
-          <span className="muted">
-            {targets.length} targets · {monitors.length} monitors
-          </span>
+          <strong>{overview.unknown_targets}</strong>
+          <span className="status-muted">No trustworthy current state</span>
         </section>
       </div>
+
+      <section className="panel dashboard-estate-strip">
+        <div className="estate-stat"><span>Targets</span><strong>{overview.target_count}</strong></div>
+        <div className="estate-stat"><span>Monitors</span><strong>{overview.monitor_count}</strong></div>
+        <div className="estate-stat"><span>Agents</span><strong>{overview.agent_count}</strong></div>
+      </section>
+
+      <section className="panel attention-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">Priority</span>
+            <h2>Needs attention</h2>
+          </div>
+          <span className="muted">{attentionTargets.length} targets</span>
+        </div>
+        {attentionTargets.length ? (
+          <div className="attention-grid">
+            {attentionTargets.map((target) => (
+              <Link className="attention-card" href={`/targets/${target.target_id}`} key={target.target_id}>
+                <div>
+                  <span className={statusClass(target.headline)}>{headlineLabel(target.headline)}</span>
+                  <strong>{target.target_name}</strong>
+                  <code>{target.address}</code>
+                </div>
+                <div className="attention-monitor-list">
+                  {target.monitors
+                    .filter((monitor) => monitor.headline !== 'healthy')
+                    .slice(0, 3)
+                    .map((monitor) => (
+                      <span key={monitor.monitor_id}>
+                        <b>{monitor.probe_type.toUpperCase()}</b> {monitorMetric(monitor)}
+                      </span>
+                    ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty-state">
+            <strong>Nothing needs attention</strong>
+            <span>All targets with trustworthy current state are healthy.</span>
+          </div>
+        )}
+      </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">Current state</span>
-            <h2>Distributed monitors</h2>
+            <span className="eyebrow">Estate</span>
+            <h2>Targets</h2>
           </div>
-          <span className="muted">{states.length} configured</span>
+          <Link className="secondary compact-action" href="/targets">Manage targets</Link>
         </div>
-        {states.length ? (
+        {overview.targets.length ? (
           <div className="resource-table-wrap">
-            <table className="resource-table">
+            <table className="resource-table target-overview-table">
               <thead>
                 <tr>
-                  <th>Monitor</th>
                   <th>Target</th>
-                  <th>State</th>
-                  <th>Coverage</th>
+                  <th>Overall</th>
+                  <th>Monitors</th>
+                  <th>Latest measurements</th>
                   <th>Agents</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {states.map((state) => (
-                  <tr key={state.monitor_id}>
+                {overview.targets.map((target) => (
+                  <tr key={target.target_id}>
                     <td>
-                      <strong>{state.monitor_name}</strong>
-                      <div className="muted">{state.probe_type.toUpperCase()}</div>
+                      <Link href={`/targets/${target.target_id}`}><strong>{target.target_name}</strong></Link>
+                      <div className="muted"><code>{target.address}</code></div>
                     </td>
-                    <td>{state.target_name}</td>
+                    <td><span className={statusClass(target.headline)}>{headlineLabel(target.headline)}</span></td>
                     <td>
-                      <span className={statusClass(state.headline)}>
-                        {headlineLabel(state.headline)}
-                      </span>
+                      {target.monitor_count}
+                      <div className="muted">{target.healthy_monitors} healthy · {target.unhealthy_monitors + target.degraded_monitors} attention</div>
                     </td>
                     <td>
-                      {state.coverage_percent.toFixed(0)}%
-                      <div className="muted">
-                        {state.healthy_agents} healthy · {state.unhealthy_agents} unhealthy ·{' '}
-                        {state.unavailable_agents} unavailable
+                      <div className="target-monitor-chips">
+                        {target.monitors.slice(0, 4).map((monitor) => (
+                          <span className={`monitor-chip monitor-chip-${monitor.headline}`} key={monitor.monitor_id}>
+                            <b>{monitor.probe_type.toUpperCase()}</b> {monitorMetric(monitor)}
+                          </span>
+                        ))}
                       </div>
                     </td>
-                    <td>{state.effective_agents}</td>
-                    <td>
-                      <Link
-                        className="secondary compact-action"
-                        href={`/monitors/${state.monitor_id}`}
-                      >
-                        View
-                      </Link>
-                    </td>
+                    <td>{target.agent_count}</td>
+                    <td><Link className="secondary compact-action" href={`/targets/${target.target_id}`}>View</Link></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="empty-state">
-            <strong>No monitors configured</strong>
-            <span>Create a target, monitor and assignment to begin monitoring.</span>
-          </div>
+          <div className="empty-state"><strong>No targets yet</strong><span>Create a target to begin monitoring.</span></div>
         )}
       </section>
-
-      {icmpMonitor ? (
-        <section className="panel latency-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">Last 24 hours</span>
-              <h2>{icmpMonitor.name}</h2>
-            </div>
-            <Link className="secondary compact-action" href={`/monitors/${icmpMonitor.id}`}>
-              Explore history
-            </Link>
-          </div>
-          <IcmpGraph
-            agentNames={Object.fromEntries(agentNames)}
-            intervalSeconds={icmpMonitor.interval_seconds}
-            observations={icmpObservations}
-            points={points}
-            rangeEnd={historyEnd.toISOString()}
-            rangeStart={historyStart.toISOString()}
-          />
-        </section>
-      ) : null}
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">Control-plane receipt order</span>
+            <span className="eyebrow">Latest activity</span>
             <h2>Recent observations</h2>
           </div>
           <span className="muted">Latest {recent.length}</span>
         </div>
         {recent.length ? (
           <div className="resource-table-wrap">
-            <table className="resource-table">
-              <thead>
-                <tr>
-                  <th>Received</th>
-                  <th>Monitor</th>
-                  <th>Agent</th>
-                  <th>Probe</th>
-                  <th>Execution</th>
-                  <th>Assessment</th>
-                  <th>Error</th>
-                </tr>
-              </thead>
+            <table className="resource-table compact-observation-table">
+              <thead><tr><th>Received</th><th>Target</th><th>Monitor</th><th>Probe</th><th>State</th><th>Error</th></tr></thead>
               <tbody>
-                {recent.map((observation) => (
-                  <tr key={observation.observation_id}>
-                    <td>{formatTimestamp(observation.received_at)}</td>
-                    <td>
-                      <Link href={`/monitors/${observation.monitor_id}`}>
-                        {monitorNames.get(observation.monitor_id) ?? observation.monitor_id}
-                      </Link>
-                    </td>
-                    <td>{agentNames.get(observation.agent_id) ?? observation.agent_id}</td>
-                    <td>{observation.probe_type.toUpperCase()}</td>
-                    <td>{observation.execution_status}</td>
-                    <td>
-                      <span className={statusClass(observation.assessment)}>
-                        {observation.assessment}
-                      </span>
-                    </td>
-                    <td>{observation.error_code ?? '—'}</td>
-                  </tr>
-                ))}
+                {recent.map((observation) => {
+                  const target = targetByMonitor.get(observation.monitor_id)
+                  return (
+                    <tr key={observation.observation_id}>
+                      <td>{formatTimestamp(observation.received_at)}</td>
+                      <td>{target ? <Link href={`/targets/${target.target_id}`}>{target.target_name}</Link> : '—'}</td>
+                      <td><Link href={`/monitors/${observation.monitor_id}`}>{monitorNames.get(observation.monitor_id) ?? observation.monitor_id}</Link></td>
+                      <td>{observation.probe_type.toUpperCase()}</td>
+                      <td><span className={statusClass(observation.assessment)}>{observation.assessment}</span></td>
+                      <td>{observation.error_code ?? '—'}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="empty-state">
-            <strong>No observations received</strong>
-            <span>
-              This is an explicit no-data state. Once enrolled agents execute assigned
-              monitors, observations will appear here.
-            </span>
-          </div>
-        )}
+        ) : null}
       </section>
     </>
   )

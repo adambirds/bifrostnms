@@ -86,6 +86,17 @@ export type Monitor = {
   updated_at: string
 }
 
+export type BulkMonitorSkippedTarget = {
+  target_id: string
+  target_name: string
+  reason: string
+}
+
+export type BulkMonitorCreateResponse = {
+  created: Monitor[]
+  skipped: BulkMonitorSkippedTarget[]
+}
+
 export type MonitorAgentAssignment = {
   id: string
   realm_id: string
@@ -261,4 +272,51 @@ export type ProbeResult =
 
 export type ProbeHistoryPoint = ObservationSummary & {
   result: ProbeResult | null
+}
+
+export type TargetMonitorSummary = {
+  monitor_id: string
+  monitor_name: string
+  probe_type: ProbeType
+  headline: MonitorHeadline
+  enabled: boolean
+  effective_agents: number
+  healthy_agents: number
+  unhealthy_agents: number
+  unavailable_agents: number
+  coverage_percent: number
+  latest_scheduled_at: string | null
+  latest_agent_id: string | null
+  latest_agent_name: string | null
+  latest_assessment: 'healthy' | 'unhealthy' | 'unknown' | null
+  latest_execution_status: 'completed' | 'failed' | null
+  latest_error_code: string | null
+  latest_result: ProbeResult | null
+}
+
+export type TargetOperationalSummary = {
+  target_id: string
+  target_name: string
+  address: string
+  description: string | null
+  enabled: boolean
+  headline: MonitorHeadline
+  monitor_count: number
+  healthy_monitors: number
+  degraded_monitors: number
+  unhealthy_monitors: number
+  unknown_monitors: number
+  agent_count: number
+  monitors: TargetMonitorSummary[]
+}
+
+export type DashboardOverview = {
+  target_count: number
+  monitor_count: number
+  agent_count: number
+  healthy_targets: number
+  degraded_targets: number
+  unhealthy_targets: number
+  unknown_targets: number
+  targets: TargetOperationalSummary[]
 }

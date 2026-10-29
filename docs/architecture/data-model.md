@@ -201,8 +201,9 @@ the target name is unique within a realm.
 
 ## Target group
 
-Target groups organize destinations for navigation, dashboards and future bulk
-operations. They do not implicitly create monitors or copy probe configuration.
+Target groups organize destinations for navigation, dashboards and bulk
+operations. They do not create a persistent monitor-to-group relationship or
+make later membership changes silently alter scheduling.
 
 Proposed fields:
 
@@ -230,11 +231,16 @@ created_at          timestamp
 `(realm_id, target_group_id, target_id)` is unique. The same cross-realm and
 cycle protections used for agent groups apply here.
 
-Target groups are intentionally organizational in V1. Assigning a monitor to a
-target group would be ambiguous because each target would need monitor identity,
-configuration-revision and lifecycle behavior. Future bulk monitor creation
-should create explicit monitors rather than make group membership silently alter
-the meaning of one monitor.
+Target groups are organizational relationships. A bulk monitor operation may
+expand the group's direct target membership at the time the command runs, but it
+creates a distinct `Monitor` for every selected target. Adding a target to the
+group later does not implicitly create a monitor, and removing a target does not
+delete its monitor or history. Re-running the bulk operation with equivalent
+monitor detection provides an explicit "apply to missing targets" workflow.
+
+This preserves independent monitor identity, configuration revision and
+lifecycle behaviour while avoiding repetitive configuration in the dashboard or
+API.
 
 ## Monitor
 
@@ -298,7 +304,7 @@ Proposed fields:
 id                  UUID primary key
 realm_id            UUID, required
 monitor_id          UUID, required
-agent_id            UUID, required
+agent_id             UUID, required
 enabled             boolean
 created_at          timestamp
 updated_at          timestamp
