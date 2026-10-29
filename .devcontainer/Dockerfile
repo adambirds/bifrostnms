@@ -8,7 +8,7 @@ ENV NODE_ENV=development
 ENV PNPM_HOME=/usr/local/share/pnpm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf automake bash-completion build-essential ca-certificates curl dnsutils fping gcc git htop \
+    autoconf automake bash-completion bubblewrap build-essential ca-certificates curl dnsutils fping gcc git htop \
     iproute2 iputils-ping jq libffi-dev libpq-dev libtool locales netcat-openbsd pkg-config \
     postgresql-client procps python3 python3-dev python3-pip python3-venv shellcheck sudo traceroute vim wget \
     && locale-gen en_GB.UTF-8 \
